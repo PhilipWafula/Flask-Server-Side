@@ -1,0 +1,17 @@
+.gitsecret/keys/random_seed
+!*.secret
+
+# IDE Files
+.DS_STORE
+.vscode
+/.idea/
+.env
+
+# python files
+*.pyc
+
+/venv/*
+
+# config files
+/config/development_config.ini
+/config/testing_config.ini
