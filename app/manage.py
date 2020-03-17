@@ -3,6 +3,7 @@ from flask_migrate import Migrate, MigrateCommand
 
 from app.server import create_app
 from app.server import db
+from app.server import models
 
 app = create_app()
 migrate = Migrate(app=app, db=db)
