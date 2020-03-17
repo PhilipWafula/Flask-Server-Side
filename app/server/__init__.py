@@ -5,7 +5,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
 from app import config
-from app.server.utils.celery_utils import init_celery
+from app.server.utils.celery import init_celery
 
 PACKAGE_NAME = os.path.dirname(os.path.realpath(__file__)).split("/")[-1]
 
