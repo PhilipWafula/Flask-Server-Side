@@ -21,7 +21,6 @@ config_file_parser = configparser.ConfigParser()
 # get folder for path for config files
 config_file_folder_path = os.path.join(CONFIG_FILE_DIRECTORY, 'config/' + CONFIG_FILENAME)
 
-
 # check if specific config files are present
 if not os.path.isfile(config_file_folder_path):
     raise Exception("Missing Config File: {}".format(CONFIG_FILENAME))
@@ -75,12 +74,18 @@ def get_database_uri(name, host, censored=True):
                                                 name)
 
 
+# build sqlalchemy uri
 SQLALCHEMY_DATABASE_URI = get_database_uri(DATABASE_NAME, DATABASE_HOST,
                                            censored=False)
+
+# build censored uri for logging
 CENSORED_URI = get_database_uri(DATABASE_NAME, DATABASE_HOST,
                                 censored=True)
 
 print('Working database URI: ' + CENSORED_URI)
+
+# define sqlalchemy track modifications
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-
+# get password pepper
+PASSWORD_PEPPER = config_file_parser['APP']['PASSWORD_PEPPER']
