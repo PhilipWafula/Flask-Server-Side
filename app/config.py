@@ -41,11 +41,17 @@ if DEPLOYMENT_ENVIRONMENT.lower() != DEPLOYMENT_NAME.lower():
 IS_TEST = config_file_parser['APP'].getboolean('IS_TEST', False)
 IS_PRODUCTION = config_file_parser['APP'].getboolean('IS_PRODUCTION')
 
+# get secret key
+SECRET_KEY = config_file_parser['APP'].get('secret_key')
+
 # get application host
 APP_HOST = config_file_parser['APP']['HOST']
 
 # get application port
 APP_PORT = config_file_parser['APP']['PORT']
+
+# get default country
+DEFAULT_COUNTRY = config_file_parser['APP']['DEFAULT_COUNTRY']
 
 # define redis uri
 REDIS_URL = 'redis://' + config_file_parser['REDIS']['URI']
@@ -89,3 +95,9 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # get password pepper
 PASSWORD_PEPPER = config_file_parser['APP']['PASSWORD_PEPPER']
+
+# get africa's talking username
+AFRICASTALKING_USERNAME = config_file_parser['AFRICASTALKING']['USERNAME']
+
+# get africa's talking api key
+AFRICASTALKING_API_KEY = config_file_parser['AFRICASTALKING']['API_KEY']
