@@ -21,7 +21,7 @@ from app.server.constants import IDENTIFICATION_TYPES
 from app.server.exceptions import IdentificationTypeNotFound
 from app.server.models.blacklisted_token import BlacklistedToken
 from app.server.utils.models import BaseModel
-from app.server.utils.user import SignupMethod
+from app.server.utils.auth import SignupMethod
 
 
 class User(BaseModel):

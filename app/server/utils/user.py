@@ -1,17 +1,11 @@
-from enum import Enum
 from phonenumbers import NumberParseException
 
 from app.server import db
-from app.server.constants import IDENTIFICATION_TYPES
-from app.server.models import user as user_model
+from app.server.models.user import User
 from app.server.schemas.user import user_schema
+from app.server.utils.auth import SignupMethod
 from app.server.utils.messaging import send_one_time_pin
 from app.server.utils.phone import process_phone_number
-
-
-class SignupMethod(Enum):
-    WEB_SIGNUP = 'WEB_SIGNUP',
-    MOBILE_SIGNUP = 'MOBILE_SIGNUP'
 
 
 def create_loan_account_user(given_names=None,
@@ -39,13 +33,13 @@ def create_loan_account_user(given_names=None,
     """
 
     # create user
-    user = user_model.User(given_names=given_names,
-                           surname=surname,
-                           email=email,
-                           msisdn=msisdn,
-                           date_of_birth=date_of_birth,
-                           address=address,
-                           signup_method=signup_method)
+    user = User(given_names=given_names,
+                surname=surname,
+                email=email,
+                msisdn=msisdn,
+                date_of_birth=date_of_birth,
+                address=address,
+                signup_method=signup_method)
 
     user.is_activated = False
 
@@ -144,7 +138,7 @@ def process_create_or_update_user_request(user_attributes,
             return response, 422
 
         # check if user is already existent
-        existing_user = user_model.User.query.filter_by(msisdn=msisdn).first()
+        existing_user = User.query.filter_by(msisdn=msisdn).first()
 
         if existing_user:
             response = {'error': {'message': 'User already exists. Please Log in.'}}
