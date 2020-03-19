@@ -1,5 +1,6 @@
 import bcrypt
 import jwt
+import pyotp
 
 from cryptography.fernet import Fernet
 from datetime import datetime
@@ -14,10 +15,13 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from app import config
 from app.server import db
+from app.server import fernet_decrypt
+from app.server import fernet_encrypt
 from app.server.constants import IDENTIFICATION_TYPES
 from app.server.exceptions import IdentificationTypeNotFound
 from app.server.models.blacklisted_token import BlacklistedToken
 from app.server.utils.models import BaseModel
+from app.server.utils.user import SignupMethod
 
 
 class User(BaseModel):
@@ -29,7 +33,7 @@ class User(BaseModel):
     given_names = db.Column(db.String(length=35), nullable=False)
     surname = db.Column(db.String(length=35), nullable=False)
 
-    _identification = db.Column(JSONB, default={})
+    _identification = db.Column(JSONB, default={}, nullable=False)
     email = db.Column(db.String)
     msisdn = db.Column(db.String(length=13), index=True, nullable=False, unique=True)
     address = db.Column(db.String)
@@ -37,6 +41,11 @@ class User(BaseModel):
     date_of_birth = db.Column(db.Date)
 
     password_hash = db.Column(db.String(200))
+    _otp_secret = db.Column(db.String(200))
+
+    is_activated = db.Column(db.Boolean, default=False)
+
+    signup_method = db.Column(db.Enum(SignupMethod))
 
     @hybrid_property
     def identification(self):
@@ -146,7 +155,7 @@ class User(BaseModel):
         :return: JSON Web Signature.
         """
         signature = TimedJSONWebSignatureSerializer(current_app.config['SECRET_KEY'],
-                                                    expires_in=(60*60*24))
+                                                    expires_in=(60 * 60 * 24))
         return signature.dumps({'id': self.id, 'type': token_type}).decode("utf-8")
 
     @classmethod
@@ -195,3 +204,31 @@ class User(BaseModel):
 
         except Exception as exception:
             return {'status': 'Failed', 'message': exception}
+
+    def set_otp_secret(self):
+        # generate random otp_secret
+        otp_secret = pyotp.random_base32()
+
+        # encrypt otp secret
+        token = fernet_encrypt(otp_secret)
+
+        # save otp secret
+        self._otp_secret = token.decode('utf-8')
+        print('STORED SECRET: ', token)
+
+        # generate one time password [expires in 1 hour]
+        one_time_password = pyotp.TOTP(otp_secret, interval=3600).now()
+
+        return one_time_password
+
+    def _get_otp_secret(self):
+        return fernet_decrypt(self._otp_secret.encode('utf-8'))
+
+    def verify_otp_secret(self, one_time_password):
+        # get secret used to create one time password
+        otp_secret = self._get_otp_secret()
+
+        # verify one time password validity
+        is_valid = pyotp.TOTP(otp_secret).verify(one_time_password)
+
+        return is_valid
