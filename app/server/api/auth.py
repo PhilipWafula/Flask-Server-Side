@@ -1,12 +1,10 @@
 from flask import Blueprint
-from flask import current_app
 from flask import jsonify
 from flask import make_response
 from flask import request
 from flask.views import MethodView
 
 from app.server import db
-from app.server.models.user import User
 from app.server.utils.user import process_create_or_update_user_request
 
 auth_blueprint = Blueprint('auth', __name__)
