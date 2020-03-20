@@ -2,8 +2,8 @@ from phonenumbers import NumberParseException
 
 from app.server import db
 from app.server.models.user import User
+from app.server.models.user import SignupMethod
 from app.server.schemas.user import user_schema
-from app.server.utils.auth import SignupMethod
 from app.server.utils.messaging import send_one_time_pin
 from app.server.utils.phone import process_phone_number
 
@@ -107,10 +107,9 @@ def process_create_or_update_user_request(user_attributes,
     password = user_attributes.get('password')
 
     # validate names
-    for name in [given_names, surname]:
-        if not name:
-            response = {'error': {'message': 'Names cannot be empty.'}}
-            return response, 422
+    if not (given_names or surname):
+        response = {'error': {'message': 'Names cannot be empty.'}}
+        return response, 422
 
     # validate password
     if not password:
@@ -120,10 +119,9 @@ def process_create_or_update_user_request(user_attributes,
         response = {'error': {'message': 'Password must be at least 8 characters long.'}}
         return response, 422
 
-    for id_data in [id_type, id_value]:
-        if not id_data:
-            response = {'error': {'message': 'ID data cannot be empty.'}}
-            return response, 422
+    if not (id_type, id_value):
+        response = {'error': {'message': 'ID data cannot be empty.'}}
+        return response, 422
 
     # validate msisdn
     if not msisdn:
