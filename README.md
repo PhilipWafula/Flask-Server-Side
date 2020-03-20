@@ -14,10 +14,10 @@ _This guide assumes you are running a linux DistrOS_
 
 - **Python 3** installed on your system
 
-- Access to system configurations. [Getting Configs](README.md#Configurations)
+- Access to system configurations.
 
  
-### Configurations
+### Getting system configurations
 
 We use ` git secret` and encrypt our configuration files using gpg keys. To get access the config files and decrypt them,
 setup [git secret](https://git-secret.io/). Once complete, reach out to [Philip Wafula](philipwafula2@gmailcom)
