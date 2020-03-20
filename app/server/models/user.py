@@ -5,7 +5,7 @@ import pyotp
 from cryptography.fernet import Fernet
 from datetime import datetime
 from datetime import timedelta
-from flask import current_app
+from enum import Enum
 from itsdangerous import BadSignature
 from itsdangerous import SignatureExpired
 from itsdangerous import TimedJSONWebSignatureSerializer
@@ -21,7 +21,11 @@ from app.server.constants import IDENTIFICATION_TYPES
 from app.server.exceptions import IdentificationTypeNotFound
 from app.server.models.blacklisted_token import BlacklistedToken
 from app.server.utils.models import BaseModel
-from app.server.utils.auth import SignupMethod
+
+
+class SignupMethod(Enum):
+    WEB_SIGNUP = 'WEB_SIGNUP',
+    MOBILE_SIGNUP = 'MOBILE_SIGNUP'
 
 
 class User(BaseModel):
@@ -122,7 +126,7 @@ class User(BaseModel):
 
             return jwt.encode(
                 payload,
-                current_app.config['SECRET_KEY'],
+                config.SECRET_KEY,
                 algorithm='HS256'
             )
         except Exception as exception:
@@ -137,7 +141,7 @@ class User(BaseModel):
         :return: integer|string
         """
         try:
-            payload = jwt.decode(token, current_app.config.get('SECRET_KEY'))
+            payload = jwt.decode(jwt=token, key=config.SECRET_KEY, algorithms='HS256')
             is_blacklisted_token = BlacklistedToken.check_if_blacklisted(token=token)
 
             if is_blacklisted_token:
@@ -154,7 +158,7 @@ class User(BaseModel):
         :param token_type: token type to sign.
         :return: JSON Web Signature.
         """
-        signature = TimedJSONWebSignatureSerializer(current_app.config['SECRET_KEY'],
+        signature = TimedJSONWebSignatureSerializer(config.SECRET_KEY,
                                                     expires_in=(60 * 60 * 24))
         return signature.dumps({'id': self.id, 'type': token_type}).decode("utf-8")
 
@@ -168,7 +172,7 @@ class User(BaseModel):
         try:
             # define signature with application
             signature = TimedJSONWebSignatureSerializer(
-                current_app.config['SECRET_KEY'])
+                config.SECRET_KEY)
 
             # get data from signature
             data = signature.loads(token.encode("utf-8"))
@@ -214,7 +218,6 @@ class User(BaseModel):
 
         # save otp secret
         self._otp_secret = token.decode('utf-8')
-        print('STORED SECRET: ', token)
 
         # generate one time password [expires in 1 hour]
         one_time_password = pyotp.TOTP(otp_secret, interval=3600).now()
@@ -224,11 +227,11 @@ class User(BaseModel):
     def _get_otp_secret(self):
         return fernet_decrypt(self._otp_secret.encode('utf-8'))
 
-    def verify_otp_secret(self, one_time_password):
+    def verify_otp(self, one_time_password, expiry_interval):
         # get secret used to create one time password
         otp_secret = self._get_otp_secret()
 
         # verify one time password validity
-        is_valid = pyotp.TOTP(otp_secret).verify(one_time_password)
+        is_valid = pyotp.TOTP(otp_secret, interval=expiry_interval).verify(one_time_password)
 
         return is_valid
