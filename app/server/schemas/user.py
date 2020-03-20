@@ -3,14 +3,6 @@ from marshmallow import fields
 from app.server.utils.schemas import BaseSchema
 
 
-def get_identification_data(user):
-    identification = user.identification
-    parsed_identification = {}
-
-    for attribute in identification:
-        parsed_identification[attribute.name] = attribute.value
-
-
 class UserSchema(BaseSchema):
     given_name = fields.Str()
     surname = fields.Str()
@@ -24,6 +16,9 @@ class UserSchema(BaseSchema):
     date_of_birth = fields.Str()
 
     is_activated = fields.Boolean()
+
+    def get_identification_data(self, user):
+        return user.identification
 
 
 user_schema = UserSchema()
