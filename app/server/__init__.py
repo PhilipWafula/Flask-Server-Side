@@ -58,7 +58,7 @@ def fernet_encrypt(secret):
 
 
 def fernet_decrypt(token):
-    secret = fernet_key.decrypt(token.decode('utf-8'))
+    secret = fernet_key.decrypt(token)
     return secret
 
 
