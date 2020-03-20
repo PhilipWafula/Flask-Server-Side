@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from app.server import db
 from app.server.utils.models import BaseModel
 
@@ -19,3 +21,10 @@ class BlacklistedToken(BaseModel):
             return True
         else:
             return False
+
+    def __init__(self, token):
+        self.token = token
+        self.blacklisted_on = datetime.now()
+
+    def __repr__(self):
+        return '<id: token: {}'.format(self.token)
