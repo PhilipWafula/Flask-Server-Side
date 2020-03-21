@@ -5,27 +5,28 @@ import pyotp
 from cryptography.fernet import Fernet
 from datetime import datetime
 from datetime import timedelta
-from enum import Enum
 from itsdangerous import BadSignature
 from itsdangerous import SignatureExpired
 from itsdangerous import TimedJSONWebSignatureSerializer
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import flag_modified
+from typing import Union
 
 from app import config
 from app.server import db
 from app.server import fernet_decrypt
 from app.server import fernet_encrypt
 from app.server.constants import IDENTIFICATION_TYPES
+from app.server.constants import STANDARD_ACCESS_ROLES
+from app.server.constants import TIERED_ACCESS_ROLES
 from app.server.exceptions import IdentificationTypeNotFound
+from app.server.exceptions import RoleNotFound
+from app.server.exceptions import TierNotFound
 from app.server.models.blacklisted_token import BlacklistedToken
+from app.server.utils.enums.auth_enums import SignupMethod
+from app.server.utils.enums.access_control_enums import AccessControlType
 from app.server.utils.models import BaseModel
-
-
-class SignupMethod(Enum):
-    WEB_SIGNUP = 'WEB_SIGNUP',
-    MOBILE_SIGNUP = 'MOBILE_SIGNUP'
 
 
 class User(BaseModel):
@@ -37,7 +38,7 @@ class User(BaseModel):
     given_names = db.Column(db.String(length=35), nullable=False)
     surname = db.Column(db.String(length=35), nullable=False)
 
-    _identification = db.Column(JSONB, default={}, nullable=False)
+    _identification = db.Column(JSONB, default={}, nullable=True)
     email = db.Column(db.String)
     msisdn = db.Column(db.String(length=13), index=True, nullable=False, unique=True)
     address = db.Column(db.String)
@@ -50,6 +51,11 @@ class User(BaseModel):
     is_activated = db.Column(db.Boolean, default=False)
 
     signup_method = db.Column(db.Enum(SignupMethod))
+
+    _role = db.Column(JSONB, default={}, nullable=True)
+
+    organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'))
+    organization = db.relationship('Organization', backref='users')
 
     @hybrid_property
     def identification(self):
@@ -235,3 +241,39 @@ class User(BaseModel):
         is_valid = pyotp.TOTP(otp_secret, interval=expiry_interval).verify(one_time_password)
 
         return is_valid
+
+    def get_user_organization(self):
+        return self.organization
+
+    @hybrid_property
+    def role(self):
+        return self._role
+
+    def set_user_role(self, role: str, tier: Union[str, None]):
+
+        # correct role value in db.
+        if self._role is None:
+            self._role = {}
+
+        # check for role system in use from user's parent organization's sys configs
+        user_organization = self.get_user_organization()
+        system_configs = user_organization.configuration
+
+        if system_configs.access_control_type == AccessControlType.STANDARD_ACCESS_CONTROL:
+            if role not in STANDARD_ACCESS_ROLES:
+                raise RoleNotFound('The provided role: {} is not recognized.'.format(role))
+
+            if role and tier is None:
+                self._role[role] = None
+                flag_modified(self, '_role')
+
+        if system_configs.access_control_type == AccessControlType.TIERED_ACCESS_CONTROL:
+            tired_roles = TIERED_ACCESS_ROLES[role]
+            if tier and tier not in tired_roles:
+                raise TierNotFound('The provided tier is not recognized.'.format(tier))
+
+            if tier is None:
+                self._role.pop(role, None)
+            else:
+                self._role[role] = tier
+                flag_modified(self, '_role')
