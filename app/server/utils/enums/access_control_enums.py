@@ -1,0 +1,6 @@
+from enum import Enum
+
+
+class AccessControlType(Enum):
+    STANDARD_ACCESS_CONTROL = 'STANDARD_ACCESS_CONTROL',
+    TIERED_ACCESS_CONTROL = 'TIERED_ACCESS_CONTROL'
