@@ -55,7 +55,6 @@ class User(BaseModel):
     _role = db.Column(JSONB, default={}, nullable=True)
 
     organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'))
-    organization = db.relationship('Organization', backref='users')
 
     @hybrid_property
     def identification(self):
@@ -191,11 +190,11 @@ class User(BaseModel):
 
             # check if token type is equivalent
             if token_type != required_token_type:
-                return {'status': 'Failed', 'message': 'Wrong token type (needed {})'.format(required_token_type)}
+                return {'status': 'Fail', 'message': 'Wrong token type (needed {})'.format(required_token_type)}
 
             # check if user_id is present
             if not user_id:
-                return {'status': 'Failed', 'message': 'No User ID provided.'}
+                return {'status': 'Fail', 'message': 'No User ID provided.'}
 
             # check if user exists in DB
             user = cls.query.filter_by(
@@ -203,17 +202,17 @@ class User(BaseModel):
 
             # if user is not found
             if not user:
-                return {'status': 'Failed', 'message': 'User not found.'}
-            return {'status': 'Succeeded', 'user': user}
+                return {'status': 'Fail', 'message': 'User not found.'}
+            return {'status': 'Success', 'user': user}
 
         except BadSignature:
-            return {'status': 'Failed', 'message': 'Token signature not valid.'}
+            return {'status': 'Fail', 'message': 'Token signature not valid.'}
 
         except SignatureExpired:
-            return {'status': 'Failed', 'message': 'Token has expired.'}
+            return {'status': 'Fail', 'message': 'Token has expired.'}
 
         except Exception as exception:
-            return {'status': 'Failed', 'message': exception}
+            return {'status': 'Fail', 'message': exception}
 
     def set_otp_secret(self):
         # generate random otp_secret

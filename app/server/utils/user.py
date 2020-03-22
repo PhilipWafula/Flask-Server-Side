@@ -108,38 +108,45 @@ def process_create_or_update_user_request(user_attributes,
 
     # validate names
     if not (given_names or surname):
-        response = {'error': {'message': 'Names cannot be empty.'}}
+        response = {'error': {'message': 'Names cannot be empty.',
+                              'status': 'Fail'}}
         return response, 422
 
     # validate password
     if not password:
-        response = {'error': {'message': 'Password cannot be empty.'}}
+        response = {'error': {'message': 'Password cannot be empty.',
+                              'status': 'Fail'}}
         return response, 422
     elif password and len(password) < 8:
-        response = {'error': {'message': 'Password must be at least 8 characters long.'}}
+        response = {'error': {'message': 'Password must be at least 8 characters long.',
+                              'status': 'Fail'}}
         return response, 422
 
     if not (id_type, id_value):
-        response = {'error': {'message': 'ID data cannot be empty.'}}
+        response = {'error': {'message': 'ID data cannot be empty.',
+                              'status': 'Fail'}}
         return response, 422
 
     # validate msisdn
     if not msisdn:
-        response = {'error': {'message': 'Phone number cannot be empty.'}}
+        response = {'error': {'message': 'Phone number cannot be empty.',
+                              'status': 'Fail'}}
         return response, 422
     else:
         try:
             # process phone number and ensure phone number validity
             msisdn = process_phone_number(msisdn)
         except NumberParseException as exception:
-            response = {'error': {'message': 'Invalid phone number. ERROR: {}'.format(exception)}}
+            response = {'error': {'message': 'Invalid phone number. ERROR: {}'.format(exception),
+                                  'status': 'Fail'}}
             return response, 422
 
         # check if user is already existent
         existing_user = User.query.filter_by(msisdn=msisdn).first()
 
         if existing_user:
-            response = {'error': {'message': 'User already exists. Please Log in.'}}
+            response = {'error': {'message': 'User already exists. Please Log in.',
+                                  'status': 'Fail'}}
             return response, 403
 
         # check if user update action is allowed
@@ -155,12 +162,13 @@ def process_create_or_update_user_request(user_attributes,
 
                 response = {'data': {'user': user_schema.dump(user).data},
                             'message': 'User successfully updated.',
-                            'status': 'success'}
+                            'status': 'Success'}
 
                 return response, 200
 
             except Exception as exception:
-                response = {'error': {'message': '{}'.format(exception)}}
+                response = {'error': {'message': '{}'.format(exception),
+                                      'status': 'Fail'}}
                 return response, 400
 
         user = create_loan_account_user(given_names=given_names,
@@ -176,11 +184,11 @@ def process_create_or_update_user_request(user_attributes,
         if signup_method == SignupMethod.MOBILE_SIGNUP:
             send_one_time_pin(user=user, phone_number=msisdn)
             response = {'message': 'User created. Please verify phone number.',
-                        'status': 'success'}
+                        'status': 'Success'}
             return response, 200
 
         else:
             response = {'data': {'user': user_schema.dump(user).data},
                         'message': 'User successfully updated.',
-                        'status': 'success'}
+                        'status': 'Success'}
             return response, 200
