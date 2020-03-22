@@ -10,4 +10,4 @@ class Configuration(BaseModel):
     __tablename__ = 'configurations'
     access_control_type = db.Column(db.Enum(AccessControlType))
     organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'))
-    organization = db.relationship('Organizations', back_populates='configurations')
+    organization = db.relationship('Organization', back_populates='configurations')
