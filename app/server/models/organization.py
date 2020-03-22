@@ -9,5 +9,5 @@ class Organization(BaseModel):
     __tablename__ = 'organizations'
 
     name = db.Column(db.String(100))
-    configuration = db.relationship('Configurations', uselist=False, back_populates='organizations')
-    users = db.relationship('User', backref='organizations')
+    configurations = db.relationship('Configuration', uselist=False, back_populates='organization')
+    users = db.relationship('User', backref='organization')

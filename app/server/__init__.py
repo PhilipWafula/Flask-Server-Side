@@ -1,7 +1,5 @@
 import africastalking
-from base64 import b64decode
 import os
-import pyotp
 
 from celery import Celery
 from flask import Flask
@@ -43,7 +41,9 @@ def make_celery(app_name=__name__):
 def register_blueprints(application):
     url_version = '/api/v1'
     from app.server.api.auth import auth_blueprint
+    from app.server.api.organization import organization_blueprint
     application.register_blueprint(auth_blueprint, url_prefix=url_version)
+    application.register_blueprint(organization_blueprint, url_prefix=url_version)
 
 
 def register_extensions(app):
