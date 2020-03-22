@@ -64,13 +64,14 @@ class VerifyOneTimePasswordAPI(MethodView):
 
                 response = {'authentication_token': auth_token.decode(),
                             'message': 'User successfully activated.',
-                            'status': 'successful'}
+                            'status': 'Success'}
 
                 db.session.commit()
 
                 return make_response(jsonify(response), 200)
 
-        response = {'error': {'message': 'Validation failed. Please try again.'}}
+        response = {'error': {'message': 'Validation failed. Please try again.',
+                              'status': 'Fail'}}
 
         return make_response(jsonify(response)), 400
 
@@ -87,7 +88,8 @@ class LoginAPI(MethodView):
         password = login_data.get('password')
 
         if not msisdn:
-            response = {'error': {'message': 'No phone number supplied.'}}
+            response = {'error': {'message': 'No phone number supplied.',
+                                  'status': 'Fail'}}
             return make_response(response), 401
 
         else:
@@ -99,25 +101,28 @@ class LoginAPI(MethodView):
                     return make_response(jsonify(response), 401)
 
                 if not user.is_activated:
-                    response = {'error': {'message': 'Account has not been activated. Please check your email.'}}
+                    response = {'error': {'message': 'Account has not been activated. Please check your email.',
+                                          'status': 'Fail'}}
                     return make_response(jsonify(response), 401)
 
                 auth_token = user.encode_auth_token()
 
                 if not auth_token:
-                    response = {'error': {'message': 'Invalid username or password.'}}
+                    response = {'error': {'message': 'Invalid username or password.',
+                                          'status': 'Fail'}}
                     return make_response(jsonify(response)), 401
 
                 response = {
                     'authentication_token': auth_token.decode(),
                     'data': {'user': user_schema.dump(user).data},
                     'message': 'Successfully logged in.',
-                    'status': 'successful'
+                    'status': 'Success'
                 }
                 return make_response(jsonify(response), 200)
 
             except Exception as exception:
-                response = {'error': {'message': 'System error: {}'.format(exception)}}
+                response = {'error': {'message': 'System error: {}'.format(exception),
+                                      'status': 'Fail'}}
                 return make_response(jsonify(response), 500)
 
 
@@ -147,18 +152,22 @@ class LogoutAPI(MethodView):
                     db.session.add(blacklist_token)
                     db.session.commit()
 
-                    response = {'error': {'message': 'Successfully logged out.'}}
+                    response = {'message': 'Successfully logged out.',
+                                'status': 'Success'}
                     return make_response(jsonify(response)), 200
 
                 except Exception as exception:
-                    response = {'error': {'message': 'Error: {}'.format(exception)}}
-                    return make_response(jsonify(response)), 200
+                    response = {'error': {'message': 'System error: {}.'.format(exception),
+                                          'status': 'Fail'}}
+                    return make_response(jsonify(response)), 500
             else:
-                response = {'error': {'message': decoded_auth_token}}
+                response = {'error': {'message': decoded_auth_token},
+                            'status': 'Fail'}
                 return make_response(jsonify(response)), 401
 
         else:
-            response = {'error': {'message': 'Provide a valid auth token.'}}
+            response = {'error': {'message': 'Provide a valid auth token.',
+                                  'status': 'Fail'}}
             return make_response(jsonify(response)), 403
 
 
