@@ -20,6 +20,9 @@ def create_app(app_name=PACKAGE_NAME, **kwargs):
     # define config file
     app.config.from_object(config)
 
+    # define base directory
+    app.config['BASEDIR'] = os.path.abspath(os.path.dirname(__file__))
+
     # register extensions
     register_extensions(app)
 
