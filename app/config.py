@@ -1,10 +1,12 @@
 import configparser
 import os
 
+from pathlib import Path
+
 API_VERSION = '0.0.1'
 
 # get absolute path for config file [/faulu-api-demo/config]
-CONFIG_FILE_DIRECTORY = os.path.abspath(os.path.join(os.getcwd(), ".."))
+CONFIG_FILE_DIRECTORY = Path(os.path.dirname(__file__)).parent
 
 # get environment on which API is running
 DEPLOYMENT_ENVIRONMENT = os.environ.get('DEPLOYMENT_NAME') or 'development'
