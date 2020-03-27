@@ -24,6 +24,7 @@ from app.server.exceptions import IdentificationTypeNotFound
 from app.server.exceptions import RoleNotFound
 from app.server.exceptions import TierNotFound
 from app.server.models.blacklisted_token import BlacklistedToken
+from app.server.models.organization import Organization
 from app.server.utils.enums.auth_enums import SignupMethod
 from app.server.utils.enums.access_control_enums import AccessControlType
 from app.server.utils.models import BaseModel
@@ -54,7 +55,11 @@ class User(BaseModel):
 
     _role = db.Column(JSONB, default={}, nullable=True)
 
-    organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'))
+    parent_organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'))
+    parent_organization = db.relationship('Organization',
+                                          primaryjoin=Organization.id == parent_organization_id,
+                                          lazy=True,
+                                          uselist=False)
 
     @hybrid_property
     def identification(self):
