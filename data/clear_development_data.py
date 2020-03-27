@@ -1,20 +1,30 @@
-from sqlalchemy import create_engine
 from app import config
+from app.server import db
+from app.server import create_app
 
-from app.server.utils.models import BaseModel
 
+def drop_and_rebuild_sql():
+    app = create_app()
+    context = app.app_context()
+    context.push()
 
-def drop_and_rebuild_sql(base, uri):
-    engine = create_engine(uri)
-    print(f'Dropping for uri: {uri}')
-    base.metadata.drop_all(engine)
-    print(f'Creating for uri: {uri}')
-    base.metadata.create_all(engine)
+    # define working database
+    working_database = config.DATABASE_NAME
+
+    # drop working database
+    print('Dropping database: {}'.format(working_database))
+    db.drop_all()
+
+    # recreate working database
+    print('Creating database: {}'.format(working_database))
+    db.create_all()
+
+    context.pop()
 
 
 def clear_all():
     if config.DEPLOYMENT_ENVIRONMENT == 'development':
-        drop_and_rebuild_sql(BaseModel, config.SQLALCHEMY_DATABASE_URI)
+        drop_and_rebuild_sql()
 
     else:
         raise Warning('You are about to drop the production database, we do not advise that you do that.')
