@@ -1,5 +1,5 @@
-## Faulu  APIs Demos
-A small flask application that provides the server side functionality for the faulu loan disbursement application. 
+## Flask-Server-Side
+A small flask application that provides the server side functionality for a basic SAAS application. 
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development
