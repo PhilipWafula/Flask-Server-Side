@@ -19,6 +19,16 @@ class OrganizationAPI(MethodView):
     """
     Creates organization
     """
+    def post(self):
+        organization_data = request.get_json()
+
+        response, status_code = process_create_or_update_organization_request(organization_data)
+        if status_code == 200:
+            db.session.commit()
+            status_code = 201
+
+        return make_response(jsonify(response), status_code)
+
     @requires_auth
     def get(self, organization_id):
         if organization_id:
@@ -52,22 +62,29 @@ class OrganizationAPI(MethodView):
             }
             return make_response(jsonify(response), 200)
 
-    def post(self, organization_id):
+    @requires_auth
+    def put(self):
         organization_data = request.get_json()
 
         response, status_code = process_create_or_update_organization_request(organization_data)
         if status_code == 200:
             db.session.commit()
-            status_code = 201
 
         return make_response(jsonify(response), status_code)
 
 
+organization_view = OrganizationAPI.as_view('organization_view')
+single_organization_view = OrganizationAPI.as_view('single_organization_view')
+
 organization_blueprint.add_url_rule('/organization/',
-                                    view_func=OrganizationAPI.as_view('organization_view'),
-                                    methods=['GET', 'POST', 'PUT'],
+                                    view_func=organization_view,
+                                    methods=['POST', ])
+
+organization_blueprint.add_url_rule('/organization/',
+                                    view_func=organization_view,
+                                    methods=['GET', ],
                                     defaults={'organization_id': None})
 
 organization_blueprint.add_url_rule('/organization/<int:organization_id>',
-                                    view_func=OrganizationAPI.as_view('single_organization_view'),
-                                    methods=['GET', 'PUT'])
+                                    view_func=single_organization_view,
+                                    methods=['GET', 'PUT', ])
