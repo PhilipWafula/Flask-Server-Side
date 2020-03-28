@@ -132,6 +132,7 @@ class User(BaseModel):
                 'exp': datetime.utcnow() + timedelta(days=7, seconds=0),
                 'iat': datetime.utcnow(),
                 'id': self.id,
+                'role': self.role
             }
 
             return jwt.encode(
