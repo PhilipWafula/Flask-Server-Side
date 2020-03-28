@@ -20,9 +20,9 @@ from app.server import fernet_encrypt
 from app.server.constants import IDENTIFICATION_TYPES
 from app.server.constants import STANDARD_ACCESS_ROLES
 from app.server.constants import TIERED_ACCESS_ROLES
-from app.server.exceptions import IdentificationTypeNotFound
-from app.server.exceptions import RoleNotFound
-from app.server.exceptions import TierNotFound
+from app.server.exceptions import IdentificationTypeNotFoundException
+from app.server.exceptions import RoleNotFoundException
+from app.server.exceptions import TierNotFoundException
 from app.server.models.blacklisted_token import BlacklistedToken
 from app.server.models.organization import Organization
 from app.server.utils.enums.auth_enums import SignupMethod
@@ -73,7 +73,7 @@ class User(BaseModel):
         """
         # check if id type is in identification types
         if id_type not in IDENTIFICATION_TYPES:
-            raise IdentificationTypeNotFound('Identification type {} not valid'.format(id_type))
+            raise IdentificationTypeNotFoundException('Identification type {} not valid'.format(id_type))
 
         # check that id value is supplied
         if id_value is None:
@@ -265,7 +265,7 @@ class User(BaseModel):
 
         if system_configs.access_control_type == AccessControlType.STANDARD_ACCESS_CONTROL:
             if role not in STANDARD_ACCESS_ROLES:
-                raise RoleNotFound('The provided role: {} is not recognized.'.format(role))
+                raise RoleNotFoundException('The provided role: {} is not recognized.'.format(role))
 
             if role and tier is None:
                 self._role[role] = None
@@ -274,7 +274,7 @@ class User(BaseModel):
         if system_configs.access_control_type == AccessControlType.TIERED_ACCESS_CONTROL:
             tired_roles = TIERED_ACCESS_ROLES[role]
             if tier and tier not in tired_roles:
-                raise TierNotFound('The provided tier is not recognized.'.format(tier))
+                raise TierNotFoundException('The provided tier is not recognized.'.format(tier))
 
             if tier is None:
                 self._role.pop(role, None)
