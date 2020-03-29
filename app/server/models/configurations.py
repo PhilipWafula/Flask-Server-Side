@@ -26,7 +26,7 @@ class Configuration(BaseModel):
             return []
         return self.access_roles
 
-    def set_access_role(self, roles_list):
+    def set_access_roles(self, roles_list):
         for role in roles_list:
             if not isinstance(role, str):
                 raise ValueError('Role {} should be a string.'.format(role))
@@ -48,7 +48,7 @@ class Configuration(BaseModel):
             return []
         return self.access_tiers
 
-    def set_access_tier(self, tiers_list):
+    def set_access_tiers(self, tiers_list):
         for tier in tiers_list:
             if not isinstance(tier, str):
                 raise ValueError('Tier {} should be a string.'.format(tier))
