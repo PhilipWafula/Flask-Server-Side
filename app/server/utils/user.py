@@ -57,10 +57,6 @@ def create_loan_account_user(given_names=None,
     if password:
         user.hash_password(password=password)
 
-    # handle setting roles
-    if signup_method == SignupMethod.MOBILE_SIGNUP:
-        user.set_user_role(role='CLIENT', tier='STANDARD')
-
     # unless special organization defined, default to master organization
     if not organization:
         organization = Organization.master_organisation()
@@ -69,6 +65,11 @@ def create_loan_account_user(given_names=None,
     user.bind_user_to_organization(organization)
 
     db.session.add(user)
+    db.session.flush()
+
+    # handle setting roles
+    if signup_method == SignupMethod.MOBILE_SIGNUP:
+        user.set_user_role(role='CLIENT')
 
     return user
 
