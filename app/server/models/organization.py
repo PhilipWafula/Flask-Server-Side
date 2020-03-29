@@ -10,4 +10,10 @@ class Organization(BaseModel):
 
     name = db.Column(db.String(100))
     configurations = db.relationship('Configuration', uselist=False, back_populates='organization')
+    is_master = db.Column(db.Boolean, default=False, index=True)
+
     users = db.relationship('User', backref='organization')
+
+    @staticmethod
+    def master_organisation() -> "Organization":
+        return Organization.query.filter_by(is_master=True).first()
