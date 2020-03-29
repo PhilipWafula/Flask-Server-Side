@@ -18,8 +18,6 @@ from app.server import db
 from app.server import fernet_decrypt
 from app.server import fernet_encrypt
 from app.server.constants import IDENTIFICATION_TYPES
-from app.server.constants import STANDARD_ACCESS_ROLES
-from app.server.constants import TIERED_ACCESS_ROLES
 from app.server.exceptions import IdentificationTypeNotFoundException
 from app.server.exceptions import RoleNotFoundException
 from app.server.exceptions import TierNotFoundException
@@ -247,6 +245,10 @@ class User(BaseModel):
 
         return is_valid
 
+    def bind_user_to_organization(self, organization: Organization):
+        if not self.parent_organization:
+            self.parent_organization = organization
+
     def get_user_organization(self):
         return self.organization
 
@@ -264,8 +266,14 @@ class User(BaseModel):
         user_organization = self.get_user_organization()
         system_configs = user_organization.configuration
 
+        # get organization access roles
+        access_roles = system_configs.access_roles or []
+
+        # get organization access tiers
+        access_tiers = system_configs.access_tiers or []
+
         if system_configs.access_control_type == AccessControlType.STANDARD_ACCESS_CONTROL:
-            if role not in STANDARD_ACCESS_ROLES:
+            if role not in access_roles:
                 raise RoleNotFoundException('The provided role: {} is not recognized.'.format(role))
 
             if role and tier is None:
@@ -273,8 +281,7 @@ class User(BaseModel):
                 flag_modified(self, '_role')
 
         if system_configs.access_control_type == AccessControlType.TIERED_ACCESS_CONTROL:
-            tired_roles = TIERED_ACCESS_ROLES[role]
-            if tier and tier not in tired_roles:
+            if tier and tier not in access_tiers:
                 raise TierNotFoundException('The provided tier is not recognized.'.format(tier))
 
             if tier is None:
