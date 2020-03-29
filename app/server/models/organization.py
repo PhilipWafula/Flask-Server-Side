@@ -9,7 +9,7 @@ class Organization(BaseModel):
     __tablename__ = 'organizations'
 
     name = db.Column(db.String(100))
-    configurations = db.relationship('Configuration', uselist=False, back_populates='organization')
+    configuration = db.relationship('Configuration', uselist=False, back_populates='organization')
     is_master = db.Column(db.Boolean, default=False, index=True)
 
     users = db.relationship('User', backref='organization')

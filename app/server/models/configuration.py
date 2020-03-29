@@ -18,7 +18,7 @@ class Configuration(BaseModel):
     domain = db.Column(db.String)
 
     organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'))
-    organization = db.relationship('Organization', back_populates='configurations')
+    organization = db.relationship('Organization', back_populates='configuration')
 
     @hybrid_property
     def roles(self):
