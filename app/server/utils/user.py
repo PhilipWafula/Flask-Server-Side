@@ -1,6 +1,7 @@
 from phonenumbers import NumberParseException
 
 from app.server import db
+from app.server.models.organization import Organization
 from app.server.models.user import User
 from app.server.models.user import SignupMethod
 from app.server.schemas.user import user_schema
@@ -17,8 +18,12 @@ def create_loan_account_user(given_names=None,
                              id_type=None,
                              id_value=None,
                              password=None,
-                             signup_method=SignupMethod.MOBILE_SIGNUP):
+                             signup_method=SignupMethod.MOBILE_SIGNUP,
+                             role=None,
+                             organization: Organization = None):
     """
+    :param role:
+    :param organization:
     :param signup_method:
     :param given_names:
     :param surname:
@@ -51,6 +56,17 @@ def create_loan_account_user(given_names=None,
     # hash password
     if password:
         user.hash_password(password=password)
+
+    # handle setting roles
+    if signup_method == SignupMethod.MOBILE_SIGNUP:
+        user.set_user_role(role='CLIENT', tier='STANDARD')
+
+    # unless special organization defined, default to master organization
+    if not organization:
+        organization = Organization.master_organisation()
+
+    # bind user to organization
+    user.bind_user_to_organization(organization)
 
     db.session.add(user)
 
