@@ -11,7 +11,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import flag_modified
-from typing import Union
+from typing import Optional
 
 from app import config
 from app.server import db
@@ -256,7 +256,7 @@ class User(BaseModel):
     def role(self):
         return self._role
 
-    def set_user_role(self, role: str, tier: Union[str, None]):
+    def set_user_role(self, role: str, tier: Optional[str] = None):
 
         # correct role value in db.
         if self._role is None:
@@ -264,7 +264,7 @@ class User(BaseModel):
 
         # check for role system in use from user's parent organization's sys configs
         user_organization = self.get_user_organization()
-        system_configs = user_organization.configuration
+        system_configs = user_organization.configurations
 
         # get organization access roles
         access_roles = system_configs.access_roles or []
@@ -277,7 +277,7 @@ class User(BaseModel):
                 raise RoleNotFoundException('The provided role: {} is not recognized.'.format(role))
 
             if role and tier is None:
-                self._role[role] = None
+                self._role[role] = 'STANDARD'
                 flag_modified(self, '_role')
 
         if system_configs.access_control_type == AccessControlType.TIERED_ACCESS_CONTROL:
