@@ -15,6 +15,7 @@ class Configuration(BaseModel):
     access_control_type = db.Column(db.Enum(AccessControlType))
     access_roles = db.Column(MutableList.as_mutable(ARRAY(db.String)))
     access_tiers = db.Column(MutableList.as_mutable(ARRAY(db.String)))
+    domain = db.Column(db.String)
 
     organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'))
     organization = db.relationship('Organization', back_populates='configurations')
