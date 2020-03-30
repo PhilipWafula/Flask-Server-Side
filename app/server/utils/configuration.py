@@ -2,9 +2,11 @@ from typing import List
 from typing import Optional
 
 from app.server import db
+from app.server.constants import SUPPORTED_ACCESS_CONTROL_TYPES
 from app.server.models.configuration import Configuration
 from app.server.models.organization import Organization
 from app.server.schemas.configuration import configuration_schema
+from app.server.utils.enums.access_control_enums import AccessControlType
 
 
 def add_organization_configuration(access_control_type=None,
@@ -19,8 +21,10 @@ def add_organization_configuration(access_control_type=None,
                                   organization_id=organization_id)
     db.session.add(configuration)
 
-    response = {'message': 'Successfully created configuration for organization id {}'.format(organization_id),
-                'status': 'Success'}
+    response = {
+        'message': 'Successfully created configuration for organization id {}'.format(
+            organization_id),
+        'status': 'Success'}
 
     return response, 200
 
@@ -34,21 +38,22 @@ def update_organization_configuration(configuration: Configuration,
         configuration.access_control_type = access_control_type
 
     if access_roles:
-        configuration.set_access_roles(access_roles)
+        configuration.set_access_attribute(access_attribute_type='role',
+                                           roles_list=access_roles)
 
     if access_tiers:
-        configuration.set_access_tiers(access_tiers)
+        configuration.set_access_attribute(access_attribute_type='tier',
+                                           tiers_list=access_tiers)
 
     if domain:
         configuration.domain = domain
-
-    db.session.add(configuration)
 
     return configuration
 
 
 def process_add_or_update_organization_configuration(configuration_attributes: dict,
                                                      update_configuration_allowed=False):
+
     organization_id = configuration_attributes.get('organization_id', None)
     access_control_type = configuration_attributes.get('access_control_type', None)
     access_roles = configuration_attributes.get('access_roles', None)
@@ -59,16 +64,10 @@ def process_add_or_update_organization_configuration(configuration_attributes: d
     if not organization_id:
         response = {
             'error':
-                {'message': 'Configurations must be tied to an organization.',
-                 'status': 'Fail'}}
-        return response, 422
-
-    # check that access control type is defined
-    if not access_control_type:
-        response = {
-            'error':
-                {'message': 'Access control type cannot be empty for an organization\'s configuration.',
-                 'status': 'Fail'}}
+                {
+                    'message': 'No organization ID provided. Configurations must be tied to an organization.',
+                    'status': 'Fail'
+                }}
         return response, 422
 
     if not access_roles:
@@ -76,6 +75,23 @@ def process_add_or_update_organization_configuration(configuration_attributes: d
 
     if not access_tiers:
         access_tiers = []
+
+    if access_control_type:
+        if access_control_type not in SUPPORTED_ACCESS_CONTROL_TYPES:
+            response = {
+                'error':
+                    {
+                        'message': 'Access control type not supported.',
+                        'status': 'Fail'
+                    }
+            }
+            return response, 422
+
+        if access_control_type == 'STANDARD':
+            access_control_type = AccessControlType.STANDARD_ACCESS_CONTROL
+
+        if access_control_type == 'TIERED':
+            access_control_type = AccessControlType.TIERED_ACCESS_CONTROL
 
     # check if existing organization
     existing_organization_configuration = Organization.query.get(organization_id).configuration
@@ -89,17 +105,21 @@ def process_add_or_update_organization_configuration(configuration_attributes: d
                                                                       domain=domain)
 
             db.session.commit()
-            response = {'data': configuration_schema(updated_configuration).data,
-                        'message': 'Successfully updated configuration for organization {}'.format(
-                            existing_organization_configuration.name),
-                        'status': 'Success'}
+            response = {
+                'data': {'configuration': configuration_schema.dump(updated_configuration).data},
+                'message': 'Successfully updated configuration for organization id {}'.format(
+                    organization_id),
+                'status': 'Success'}
+
             return response, 200
+
         except Exception as exception:
             response = {
                 'error': {
                     'message': exception,
                     'status': 'Fail'
                 }}
+            print(exception)
 
             return response, 400
 
@@ -110,8 +130,9 @@ def process_add_or_update_organization_configuration(configuration_attributes: d
                                                    organization_id=organization_id)
 
     db.session.add(configuration)
-    response = {'data': configuration_schema(configuration).data,
-                'message': 'Successfully added configuration for organization {}'.format(
-                    existing_organization_configuration.name),
-                'status': 'Success'}
+    response = {
+        'data': {'configuration': configuration_schema.dump(configuration).data},
+        'message': 'Successfully added configuration for organization {}'.format(
+            existing_organization_configuration.name),
+        'status': 'Success'}
     return response, 200
