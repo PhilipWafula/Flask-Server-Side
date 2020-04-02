@@ -123,6 +123,19 @@ def process_create_or_update_user_request(user_attributes,
     password = user_attributes.get('password')
     signup_method = user_attributes.get('signup_method')
 
+    # get master organization
+    organization = Organization.master_organisation()
+
+    if not organization:
+        response = {
+            'error': {
+                'message': 'User cannot be created without at least a master organization. Please create one.',
+                'status': 'Fail'
+            }
+        }
+
+        return response, 422
+
     # process sign up methods
     if signup_method:
         if signup_method == 'MOBILE':
@@ -169,9 +182,6 @@ def process_create_or_update_user_request(user_attributes,
         return response, 422
 
     if email and signup_method == SignupMethod.WEB_SIGNUP:
-        # get master organization
-        organization = Organization.master_organisation()
-
         # get user's organization configs
         organization_configuration = organization.configuration
 
@@ -250,24 +260,36 @@ def process_create_or_update_user_request(user_attributes,
 
     # validate msisdn
     if not msisdn:
-        response = {'error': {'message': 'Phone number cannot be empty.',
-                              'status': 'Fail'}}
+        response = {
+            'error':
+                {
+                    'message': 'Phone number cannot be empty.',
+                    'status': 'Fail'}
+        }
         return response, 422
     else:
         try:
             # process phone number and ensure phone number validity
             msisdn = process_phone_number(msisdn)
         except NumberParseException as exception:
-            response = {'error': {'message': 'Invalid phone number. ERROR: {}'.format(exception),
-                                  'status': 'Fail'}}
+            response = {
+                'error':
+                    {
+                        'message': 'Invalid phone number. ERROR: {}'.format(exception),
+                        'status': 'Fail'}
+            }
             return response, 422
 
         # check if user is already existent
         existing_user = User.query.filter_by(msisdn=msisdn).first()
 
         if existing_user and not user_update_allowed:
-            response = {'error': {'message': 'User already exists. Please Log in.',
-                                  'status': 'Fail'}}
+            response = {
+                'error':
+                    {
+                        'message': 'User already exists. Please Log in.',
+                        'status': 'Fail'}
+            }
             return response, 403
 
         # check if user update action is allowed
@@ -281,9 +303,11 @@ def process_create_or_update_user_request(user_attributes,
 
                 db.session.commit()
 
-                response = {'data': {'user': user_schema.dump(user).data},
-                            'message': 'User successfully updated.',
-                            'status': 'Success'}
+                response = {
+                    'data': {'user': user_schema.dump(user).data},
+                    'message': 'User successfully updated.',
+                    'status': 'Success'
+                }
 
                 return response, 200
 
@@ -311,7 +335,9 @@ def process_create_or_update_user_request(user_attributes,
             return response, 200
 
         else:
-            response = {'data': {'user': user_schema.dump(user).data},
-                        'message': 'User successfully updated.',
-                        'status': 'Success'}
+            response = {
+                'data': {'user': user_schema.dump(user).data},
+                'message': 'User successfully updated.',
+                'status': 'Success'
+            }
             return response, 200
