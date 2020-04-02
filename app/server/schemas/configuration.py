@@ -8,6 +8,7 @@ class ConfigurationSchema(BaseSchema):
     access_roles = fields.List(fields.String())
     access_tiers = fields.List(fields.String())
     domain = fields.String()
+    mailer_settings = fields.Dict()
 
 
 configuration_schema = ConfigurationSchema()

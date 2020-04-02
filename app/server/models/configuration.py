@@ -1,9 +1,13 @@
 from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
 from typing import List
 from typing import Optional
 
+from app.server.constants import SUPPORTED_MAILER_SETTINGS
 from app.server import db
+from app.server import fernet_decrypt
+from app.server import fernet_encrypt
 from app.server.utils.enums.access_control_enums import AccessControlType
 from app.server.utils.models import BaseModel
 from app.server.utils.models import MutableList
@@ -18,6 +22,7 @@ class Configuration(BaseModel):
     access_roles = db.Column(MutableList.as_mutable(ARRAY(db.String)))
     access_tiers = db.Column(MutableList.as_mutable(ARRAY(db.String)))
     domain = db.Column(db.String)
+    _mailer_settings = db.Column(JSONB, nullable=True)
 
     organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'))
     organization = db.relationship('Organization', back_populates='configuration')
@@ -86,3 +91,29 @@ class Configuration(BaseModel):
         if access_attribute_type == 'tier':
             self.access_tiers = []
 
+    @hybrid_property
+    def mailer_settings(self):
+        if not self._mailer_settings:
+            return {}
+        return self._mailer_settings
+
+    def add_mailer_settings(self, settings: dict):
+        if self._mailer_settings is None:
+            self._mailer_settings = {}
+
+        for setting, value in settings.items():
+            setting = setting.upper()
+            if setting not in SUPPORTED_MAILER_SETTINGS:
+                raise ValueError('Unsupported mailer setting: {}'.format(setting))
+
+            if setting == 'PASSWORD':
+                value = fernet_encrypt(value).decode('utf-8')
+
+            self._mailer_settings[setting] = value
+
+    def get_mailer_password(self):
+        for setting, value in self.mailer_settings.items():
+            if setting == 'PASSWORD':
+                value = fernet_decrypt(value).encode('utf-8')
+                return value
+            raise ValueError('Password not found.')
