@@ -3,7 +3,7 @@ from flask import make_response
 from flask import request
 from functools import partial
 from functools import wraps
-from typing import Dict
+from typing import List
 from typing import Optional
 
 from app.server.models.user import User
@@ -11,8 +11,18 @@ from app.server.utils.access_control import AccessControl
 
 
 def requires_auth(function=None,
-                  authenticated_roles: Optional[Dict] = None):
-    authenticated_roles = authenticated_roles or {}
+                  authenticated_roles: Optional[List] = None):
+    processed_authenticated_roles = []
+
+    # process authenticated roles list
+    if authenticated_roles:
+        for role_item in authenticated_roles:
+            if isinstance(role_item, str):
+                role_item = {role_item: 'STANDARD'}
+
+            role_item = role_item or {}
+
+            processed_authenticated_roles.append(role_item)
 
     # returns a partial function that could take more arguments
     # implemented like this to keep this extensible but closed for modification.
@@ -66,9 +76,11 @@ def requires_auth(function=None,
                     has_tiered_access_control = access_control.has_tiered_access_control_type()
 
                     # check if user has required role
-                    has_required_role = access_control.has_required_role(user_role_dict, authenticated_roles)
+                    has_required_role = False
+                    for required_role in processed_authenticated_roles:
+                        has_required_role = access_control.has_required_role(user_role_dict, required_role)
 
-                    for (role, tier) in user_role_dict:
+                    for (role, tier) in user_role_dict.items():
 
                         # check if user has required tier
                         has_required_tier = access_control.has_required_tier(user_role_dict, tier)

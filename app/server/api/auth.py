@@ -34,6 +34,7 @@ class VerifyOneTimePasswordAPI(MethodView):
     """
     Verify OTP
     """
+
     def post(self):
         otp_data = request.get_json()
 
@@ -84,52 +85,70 @@ class LoginAPI(MethodView):
     def post(self):
         login_data = request.get_json()
 
+        email = login_data.get('email')
         msisdn = login_data.get('msisdn')
         password = login_data.get('password')
 
-        if not msisdn:
-            response = {'error': {'message': 'No phone number supplied.',
-                                  'status': 'Fail'}}
-            return make_response(response), 401
+        user = None
 
-        else:
-            # check that user with phone exists
+        if email:
+            user = User.query.filter_by(email=email).first()
+
+        if msisdn:
             user = User.query.filter_by(msisdn=msisdn).first()
-            try:
-                if not user or not user.verify_password(password):
-                    response = {'error': {'message': 'Invalid phone number or password.'}}
-                    return make_response(jsonify(response), 401)
 
-                if not user.is_activated:
-                    response = {'error': {'message': 'Account has not been activated. Please check your email.',
-                                          'status': 'Fail'}}
-                    return make_response(jsonify(response), 401)
-
-                auth_token = user.encode_auth_token()
-
-                if not auth_token:
-                    response = {'error': {'message': 'Invalid username or password.',
-                                          'status': 'Fail'}}
-                    return make_response(jsonify(response)), 401
-
+        if user:
+            if not user.verify_password(password):
                 response = {
-                    'authentication_token': auth_token.decode(),
-                    'data': {'user': user_schema.dump(user).data},
-                    'message': 'Successfully logged in.',
-                    'status': 'Success'
+                    'error': {
+                        'message': 'Invalid phone number or password.',
+                        'status': 'Fail'
+                    }
                 }
-                return make_response(jsonify(response), 200)
+                return response, 401
 
-            except Exception as exception:
-                response = {'error': {'message': 'System error: {}'.format(exception),
-                                      'status': 'Fail'}}
-                return make_response(jsonify(response), 500)
+            if not user.is_activated:
+                response = {
+                    'error': {
+                        'message': 'Account has not been activated. Please verify your phone number or email.',
+                        'status': 'Fail'
+                    }
+                }
+                return response, 403
+
+            auth_token = user.encode_auth_token()
+
+            if not auth_token:
+                response = {
+                    'error': {
+                        'message': 'Invalid credentials, phone number, email or password',
+                        'status': 'Fail'
+                    }
+                }
+                return response, 401
+
+            response = {
+                'authentication_token': auth_token.decode(),
+                'data': {'user': user_schema.dump(user).data},
+                'message': 'Successfully logged in.',
+                'status': 'Success'
+            }
+            return response, 200
+
+        response = {
+            'error': {
+                'message': 'Invalid credentials, phone number, email or password',
+                'status': 'Fail'
+            }
+        }
+        return response, 401
 
 
 class LogoutAPI(MethodView):
     """
     Logout out
     """
+
     def post(self):
 
         # get auth token
