@@ -304,8 +304,10 @@ def process_create_or_update_user_request(user_attributes,
 
         if signup_method == SignupMethod.MOBILE_SIGNUP:
             send_one_time_pin(user=user, phone_number=msisdn)
-            response = {'message': 'User created. Please verify phone number.',
-                        'status': 'Success'}
+            response = {
+                'message': 'User created. Please verify phone number.',
+                'status': 'Success'
+            }
             return response, 200
 
         else:

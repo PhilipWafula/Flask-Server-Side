@@ -42,19 +42,47 @@ class VerifyOneTimePasswordAPI(MethodView):
         otp_token = otp_data.get('otp')
         otp_expiry_interval = otp_data.get('otp_expiry_interval')
 
-        user = User.query.filter_by(msisdn=msisdn).first()
-
-        malformed_otp = False
-
-        if not isinstance(otp_token, str) or len(otp_token) != 6:
-            malformed_otp = True
-
-        if malformed_otp:
-            response = {'error': {'message': 'OTP must be a 6 digit numeric string'}}
+        if not msisdn:
+            response = {
+                'error': {
+                    'message': 'No phone number provided.',
+                    'status': 'Fail'
+                }
+            }
             return make_response(jsonify(response), 400)
 
+        if not otp_token:
+            response = {
+                'error': {
+                    'message': 'No OTP token provided.',
+                    'status': 'Fail'
+                }
+            }
+            return make_response(jsonify(response), 400)
+
+        if not otp_expiry_interval:
+            response = {
+                'error': {
+                    'message': 'No OTP expiry interval provided.',
+                    'status': 'Fail'
+                }
+            }
+            return make_response(jsonify(response), 400)
+
+        if not isinstance(otp_token, str):
+            response = {
+                'error': {
+                        'message': 'OTP must be a 6 digit numeric string',
+                        'status': 'Fail'
+                }
+            }
+            return make_response(jsonify(response), 400)
+
+        user = User.query.filter_by(msisdn=msisdn).first()
+
         if user:
-            is_valid_otp = user.verify_otp(otp_token, otp_expiry_interval)
+            is_valid_otp = user.verify_otp(one_time_password=otp_token,
+                                           expiry_interval=otp_expiry_interval)
 
             if is_valid_otp:
                 # activated user
@@ -63,17 +91,31 @@ class VerifyOneTimePasswordAPI(MethodView):
                 # create authentication token
                 auth_token = user.encode_auth_token()
 
-                response = {'authentication_token': auth_token.decode(),
-                            'message': 'User successfully activated.',
-                            'status': 'Success'}
+                if auth_token:
 
-                db.session.commit()
+                    db.session.commit()
 
-                return make_response(jsonify(response), 200)
+                    response = {
+                        'authentication_token': auth_token.decode(),
+                        'message': 'User successfully activated.',
+                        'status': 'Success'}
 
-        response = {'error': {'message': 'Validation failed. Please try again.',
-                              'status': 'Fail'}}
+                    return make_response(jsonify(response), 200)
 
+            response = {
+                'error': {
+                    'message': 'Invalid OTP provided.',
+                    'status': 'Fail'
+                }
+            }
+            return make_response(jsonify(response), 400)
+
+        response = {
+            'error': {
+                'message': 'No user found for phone number {}.'.format(msisdn),
+                'status': 'Fail'
+            }
+        }
         return make_response(jsonify(response)), 400
 
 
