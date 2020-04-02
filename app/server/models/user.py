@@ -38,8 +38,8 @@ class User(BaseModel):
     surname = db.Column(db.String(length=35), nullable=False)
 
     _identification = db.Column(JSONB, default={}, nullable=True)
-    email = db.Column(db.String)
-    msisdn = db.Column(db.String(length=13), index=True, nullable=False, unique=True)
+    email = db.Column(db.String, index=True, nullable=True, unique=True)
+    msisdn = db.Column(db.String(length=13), index=True, nullable=True, unique=True)
     address = db.Column(db.String)
 
     date_of_birth = db.Column(db.Date)
@@ -264,7 +264,7 @@ class User(BaseModel):
 
         # check for role system in use from user's parent organization's sys configs
         user_organization = self.get_user_organization()
-        system_configs = user_organization.configurations
+        system_configs = user_organization.configuration
 
         # get organization access roles
         access_roles = system_configs.access_roles or []

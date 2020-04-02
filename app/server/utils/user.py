@@ -1,28 +1,29 @@
 from phonenumbers import NumberParseException
+from urllib.parse import urlparse
 
 from app.server import db
 from app.server.models.organization import Organization
 from app.server.models.user import User
 from app.server.models.user import SignupMethod
 from app.server.schemas.user import user_schema
+from app.server.utils.enums.access_control_enums import AccessControlType
+from app.server.utils.mailer import send_user_activation_email
 from app.server.utils.messaging import send_one_time_pin
 from app.server.utils.phone import process_phone_number
 
 
-def create_loan_account_user(given_names=None,
-                             surname=None,
-                             email=None,
-                             msisdn=None,
-                             address=None,
-                             date_of_birth=None,
-                             id_type=None,
-                             id_value=None,
-                             password=None,
-                             signup_method=SignupMethod.MOBILE_SIGNUP,
-                             role=None,
-                             organization: Organization = None):
+def create_user(given_names=None,
+                surname=None,
+                email=None,
+                msisdn=None,
+                address=None,
+                date_of_birth=None,
+                id_type=None,
+                id_value=None,
+                password=None,
+                signup_method=SignupMethod.MOBILE_SIGNUP,
+                organization: Organization = None):
     """
-    :param role:
     :param organization:
     :param signup_method:
     :param given_names:
@@ -74,11 +75,11 @@ def create_loan_account_user(given_names=None,
     return user
 
 
-def update_loan_account_user(user,
-                             given_names=None,
-                             surname=None,
-                             address=None,
-                             date_of_birth=None):
+def update_user(user,
+                given_names=None,
+                surname=None,
+                address=None,
+                date_of_birth=None):
     """
     :param user:
     :param given_names:
@@ -104,11 +105,9 @@ def update_loan_account_user(user,
 
 
 def process_create_or_update_user_request(user_attributes,
-                                          signup_method=SignupMethod.MOBILE_SIGNUP,
                                           user_update_allowed=False):
     """
     :param user_update_allowed:
-    :param signup_method:
     :param user_attributes:
     :return:
     """
@@ -122,6 +121,15 @@ def process_create_or_update_user_request(user_attributes,
     id_type = user_attributes.get('id_type')
     id_value = user_attributes.get('id_value')
     password = user_attributes.get('password')
+    signup_method = user_attributes.get('signup_method')
+
+    # process sign up methods
+    if signup_method:
+        if signup_method == 'MOBILE':
+            signup_method = SignupMethod.MOBILE_SIGNUP
+
+        if signup_method == 'WEB':
+            signup_method = SignupMethod.WEB_SIGNUP
 
     # validate names
     if not (given_names or surname):
@@ -144,6 +152,59 @@ def process_create_or_update_user_request(user_attributes,
                               'status': 'Fail'}}
         return response, 422
 
+    if email and signup_method == SignupMethod.WEB_SIGNUP:
+        # get master organization
+        organization = Organization.master_organisation()
+
+        # get user's organization configs
+        organization_configuration = organization.configuration
+
+        # get domain
+        domain = organization_configuration.domain
+        base_domain = ''
+
+        # process domain
+        if domain:
+            # get domain netloc
+            parsed_domain = urlparse(domain)
+            first_level_domain = parsed_domain.netloc
+
+            # process domain
+            if 'www.' in first_level_domain:
+                base_domain = domain.strip('www.')
+
+        # create admin user
+        admin = create_user(email=email,
+                            given_names=given_names,
+                            password=password,
+                            surname=surname,
+                            signup_method=signup_method)
+
+        # check that the base domain is in the email
+        if email and base_domain in email and signup_method == SignupMethod.WEB_SIGNUP:
+            # create admins
+            if organization_configuration.access_control_type == AccessControlType.STANDARD_ACCESS_CONTROL:
+                admin.set_user_role(role='ADMIN', tier='STANDARD')
+
+            if organization_configuration.access_control_type == AccessControlType.TIERED_ACCESS_CONTROL:
+                admin.set_user_role(role='ADMIN', tier='SYSTEM_ADMIN')
+
+        # encode single use activation token
+        activation_token = admin.encode_single_use_jws(token_type='activation')
+
+        # send email
+        send_user_activation_email(activation_token=activation_token,
+                                   email=email,
+                                   given_names=given_names,
+                                   organization=organization)
+
+        response = {
+            'data': {'user': user_schema.dump(admin).data},
+            'message': 'Successfully created admin. Check email to activate.',
+            'status': 'Success'
+        }
+        return response, 200
+
     # validate msisdn
     if not msisdn:
         response = {'error': {'message': 'Phone number cannot be empty.',
@@ -161,7 +222,7 @@ def process_create_or_update_user_request(user_attributes,
         # check if user is already existent
         existing_user = User.query.filter_by(msisdn=msisdn).first()
 
-        if existing_user:
+        if existing_user and not user_update_allowed:
             response = {'error': {'message': 'User already exists. Please Log in.',
                                   'status': 'Fail'}}
             return response, 403
@@ -169,11 +230,11 @@ def process_create_or_update_user_request(user_attributes,
         # check if user update action is allowed
         if existing_user and user_update_allowed:
             try:
-                user = update_loan_account_user(user_attributes,
-                                                given_names=given_names,
-                                                surname=surname,
-                                                address=address,
-                                                date_of_birth=date_of_birth)
+                user = update_user(user_attributes,
+                                   given_names=given_names,
+                                   surname=surname,
+                                   address=address,
+                                   date_of_birth=date_of_birth)
 
                 db.session.commit()
 
@@ -188,15 +249,15 @@ def process_create_or_update_user_request(user_attributes,
                                       'status': 'Fail'}}
                 return response, 400
 
-        user = create_loan_account_user(given_names=given_names,
-                                        surname=surname,
-                                        email=email,
-                                        msisdn=msisdn,
-                                        address=address,
-                                        date_of_birth=date_of_birth,
-                                        password=password,
-                                        id_type=id_type,
-                                        id_value=id_value)
+        user = create_user(given_names=given_names,
+                           surname=surname,
+                           email=email,
+                           msisdn=msisdn,
+                           address=address,
+                           date_of_birth=date_of_birth,
+                           password=password,
+                           id_type=id_type,
+                           id_value=id_value)
 
         if signup_method == SignupMethod.MOBILE_SIGNUP:
             send_one_time_pin(user=user, phone_number=msisdn)
