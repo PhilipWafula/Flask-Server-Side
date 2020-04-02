@@ -173,37 +173,65 @@ def process_create_or_update_user_request(user_attributes,
             if 'www.' in first_level_domain:
                 base_domain = domain.strip('www.')
 
-        # create admin user
-        admin = create_user(email=email,
-                            given_names=given_names,
-                            password=password,
-                            surname=surname,
-                            signup_method=signup_method)
-
         # check that the base domain is in the email
         if email and base_domain in email and signup_method == SignupMethod.WEB_SIGNUP:
-            # create admins
+
+            # check whether user with admin role exists
+            existing_user = User.query.filter_by(email=email).first()
+
+            if existing_user:
+
+                existing_user_is_activated = existing_user.is_activated
+
+                if not existing_user_is_activated:
+                    response = {
+                        'error': {
+                            'message': 'User already exists. Please check email to activate your account.',
+                            'status': 'Fail'
+                        }
+                    }
+
+                    return response, 403
+
+                response = {
+                    'error': {
+                        'message': 'User already exists. Please log in',
+                        'status': 'Fail'
+                    }
+                }
+
+                return response, 403
+
+            # create user with admin role
+            admin = create_user(email=email,
+                                given_names=given_names,
+                                password=password,
+                                surname=surname,
+                                signup_method=signup_method)
+
+            # set admin roles
+            print(organization_configuration.access_control_type)
             if organization_configuration.access_control_type == AccessControlType.STANDARD_ACCESS_CONTROL:
-                admin.set_user_role(role='ADMIN', tier='STANDARD')
+                admin.set_user_role(role='ADMIN')
 
             if organization_configuration.access_control_type == AccessControlType.TIERED_ACCESS_CONTROL:
                 admin.set_user_role(role='ADMIN', tier='SYSTEM_ADMIN')
 
-        # encode single use activation token
-        activation_token = admin.encode_single_use_jws(token_type='activation')
+            # encode single use activation token
+            activation_token = admin.encode_single_use_jws(token_type='activation')
 
-        # send email
-        send_user_activation_email(activation_token=activation_token,
-                                   email=email,
-                                   given_names=given_names,
-                                   organization=organization)
+            # send activation email
+            send_user_activation_email(activation_token=activation_token,
+                                       email=email,
+                                       given_names=given_names,
+                                       organization=organization)
 
-        response = {
-            'data': {'user': user_schema.dump(admin).data},
-            'message': 'Successfully created admin. Check email to activate.',
-            'status': 'Success'
-        }
-        return response, 200
+            response = {
+                'data': {'user': user_schema.dump(admin).data},
+                'message': 'Successfully created admin. Check email to activate.',
+                'status': 'Success'
+            }
+            return response, 200
 
     # validate msisdn
     if not msisdn:
