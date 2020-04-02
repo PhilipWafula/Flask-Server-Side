@@ -81,6 +81,14 @@ Sometimes, branches split and you will have multiple heads:
 python manage.py db merge heads
 ```
 
+### Background tasks
+To run background tasks such as sending actual emails and other background tasks, to run celery you're in the
+root directory then run:
+
+```shell script
+celery worker -A worker.tasks --loglevel=info
+```
+
 
 ## Authors
 
