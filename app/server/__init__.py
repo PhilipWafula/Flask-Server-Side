@@ -1,21 +1,19 @@
 import africastalking
 import os
 
-from celery import Celery
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from cryptography.fernet import Fernet
+from flask import Flask
+from flask_mail import Mail
+from flask_sqlalchemy import SQLAlchemy
 
 from app import config
-from app.server.utils.celery import init_celery
 
-PACKAGE_NAME = os.path.dirname(os.path.realpath(__file__)).split("/")[-1]
 fernet_key = Fernet(str(config.SECRET_KEY))
 
 
-def create_app(app_name=PACKAGE_NAME, **kwargs):
+def boilerplate_app():
     # define app
-    app = Flask(app_name)
+    app = Flask(__name__, instance_relative_config=True)
 
     # define config file
     app.config.from_object(config)
@@ -26,19 +24,17 @@ def create_app(app_name=PACKAGE_NAME, **kwargs):
     # register extensions
     register_extensions(app)
 
-    # register blueprints
-    register_blueprints(app)
-
-    if kwargs.get("celery"):
-        init_celery(kwargs.get("celery"), app)
-
     return app
 
 
-def make_celery(app_name=__name__):
-    return Celery(app_name,
-                  backend=config.REDIS_URL,
-                  broker=config.REDIS_URL)
+def create_app():
+
+    app = boilerplate_app()
+
+    # register blueprints
+    register_blueprints(app)
+
+    return app
 
 
 def register_blueprints(application):
@@ -51,6 +47,7 @@ def register_blueprints(application):
 
 def register_extensions(app):
     db.init_app(app)
+    mailer.init_app(app)
 
 
 def fernet_encrypt(secret):
@@ -65,9 +62,6 @@ def fernet_decrypt(token):
     return secret
 
 
-# create instance of celery app
-celery = make_celery()
-
 # define db
 db = SQLAlchemy()
 
@@ -76,3 +70,6 @@ africastalking.initialize(username=config.AFRICASTALKING_USERNAME,
                           api_key=config.AFRICASTALKING_API_KEY)
 
 sms = africastalking.SMS
+
+# initialize mailer
+mailer = Mail()
