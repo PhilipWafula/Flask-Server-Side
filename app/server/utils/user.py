@@ -133,23 +133,39 @@ def process_create_or_update_user_request(user_attributes,
 
     # validate names
     if not (given_names or surname):
-        response = {'error': {'message': 'Names cannot be empty.',
-                              'status': 'Fail'}}
+        response = {
+            'error':
+                {
+                    'message': 'Names cannot be empty.',
+                    'status': 'Fail'}
+        }
         return response, 422
 
     # validate password
     if not password:
-        response = {'error': {'message': 'Password cannot be empty.',
-                              'status': 'Fail'}}
+        response = {
+            'error':
+                {
+                    'message': 'Password cannot be empty.',
+                    'status': 'Fail'}
+        }
         return response, 422
     elif password and len(password) < 8:
-        response = {'error': {'message': 'Password must be at least 8 characters long.',
-                              'status': 'Fail'}}
+        response = {
+            'error':
+                {
+                    'message': 'Password must be at least 8 characters long.',
+                    'status': 'Fail'}
+        }
         return response, 422
 
     if not (id_type, id_value):
-        response = {'error': {'message': 'ID data cannot be empty.',
-                              'status': 'Fail'}}
+        response = {
+            'error':
+                {
+                    'message': 'ID data cannot be empty.',
+                    'status': 'Fail'}
+        }
         return response, 422
 
     if email and signup_method == SignupMethod.WEB_SIGNUP:
@@ -210,7 +226,6 @@ def process_create_or_update_user_request(user_attributes,
                                 signup_method=signup_method)
 
             # set admin roles
-            print(organization_configuration.access_control_type)
             if organization_configuration.access_control_type == AccessControlType.STANDARD_ACCESS_CONTROL:
                 admin.set_user_role(role='ADMIN')
 
