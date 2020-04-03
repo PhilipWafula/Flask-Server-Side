@@ -8,6 +8,7 @@ class OrganizationSchema(BaseSchema):
     name = fields.Str()
     is_master = fields.Boolean()
     configuration = fields.Nested('ConfigurationSchema')
+    public_identifier = fields.String()
 
 
 organization_schema = OrganizationSchema()

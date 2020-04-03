@@ -1,3 +1,5 @@
+from jsonschema.exceptions import ValidationError
+
 from phonenumbers import NumberParseException
 from urllib.parse import urlparse
 
@@ -5,11 +7,21 @@ from app.server import db
 from app.server.models.organization import Organization
 from app.server.models.user import User
 from app.server.models.user import SignupMethod
+from app.server.schemas.json.user import user_json_schema
 from app.server.schemas.user import user_schema
+from app.server.templates.responses import invalid_request_on_validation
 from app.server.utils.enums.access_control_enums import AccessControlType
 from app.server.utils.mailer import send_user_activation_email
 from app.server.utils.messaging import send_one_time_pin
+from app.server.utils.validation import validate_request
 from app.server.utils.phone import process_phone_number
+
+
+def get_organization(public_identifier: str):
+    if public_identifier:
+        organization = Organization.query.filter_by(public_identifier=public_identifier).first()
+        return organization
+    raise ValueError('No organization matching public identifier was found.')
 
 
 def create_user(given_names=None,
@@ -122,9 +134,18 @@ def process_create_or_update_user_request(user_attributes,
     id_value = user_attributes.get('id_value')
     password = user_attributes.get('password')
     signup_method = user_attributes.get('signup_method')
+    public_identifier = user_attributes.get('public_identifier')
 
-    # get master organization
-    organization = Organization.master_organisation()
+    # verify request
+    try:
+        validate_request(instance=user_attributes, schema=user_json_schema)
+
+    except ValidationError as error:
+        response, status_code = invalid_request_on_validation(error.message)
+        return response, status_code
+
+    # get organization to tie user to
+    organization = get_organization(public_identifier)
 
     if not organization:
         response = {
@@ -144,39 +165,11 @@ def process_create_or_update_user_request(user_attributes,
         if signup_method == 'WEB':
             signup_method = SignupMethod.WEB_SIGNUP
 
-    # validate names
-    if not (given_names or surname):
-        response = {
-            'error':
-                {
-                    'message': 'Names cannot be empty.',
-                    'status': 'Fail'}
-        }
-        return response, 422
-
-    # validate password
-    if not password:
-        response = {
-            'error':
-                {
-                    'message': 'Password cannot be empty.',
-                    'status': 'Fail'}
-        }
-        return response, 422
-    elif password and len(password) < 8:
+    if password and len(password) < 8:
         response = {
             'error':
                 {
                     'message': 'Password must be at least 8 characters long.',
-                    'status': 'Fail'}
-        }
-        return response, 422
-
-    if not (id_type, id_value):
-        response = {
-            'error':
-                {
-                    'message': 'ID data cannot be empty.',
                     'status': 'Fail'}
         }
         return response, 422
@@ -268,8 +261,18 @@ def process_create_or_update_user_request(user_attributes,
         }
         return response, 422
     else:
+        # check that id values are present
+        if not (id_type, id_value):
+            response = {
+                'error':
+                    {
+                        'message': 'ID data cannot be empty.',
+                        'status': 'Fail'}
+            }
+            return response, 422
+
+        # process phone number and ensure phone number validity
         try:
-            # process phone number and ensure phone number validity
             msisdn = process_phone_number(msisdn)
         except NumberParseException as exception:
             response = {
@@ -283,6 +286,7 @@ def process_create_or_update_user_request(user_attributes,
         # check if user is already existent
         existing_user = User.query.filter_by(msisdn=msisdn).first()
 
+        # check if request is an update request
         if existing_user and not user_update_allowed:
             response = {
                 'error':
@@ -292,7 +296,7 @@ def process_create_or_update_user_request(user_attributes,
             }
             return response, 403
 
-        # check if user update action is allowed
+        # process update request
         if existing_user and user_update_allowed:
             try:
                 user = update_user(user_attributes,
@@ -316,6 +320,7 @@ def process_create_or_update_user_request(user_attributes,
                                       'status': 'Fail'}}
                 return response, 400
 
+        # create client user
         user = create_user(given_names=given_names,
                            surname=surname,
                            email=email,
@@ -326,18 +331,11 @@ def process_create_or_update_user_request(user_attributes,
                            id_type=id_type,
                            id_value=id_value)
 
+        # send user OTP to validate user's phone number
         if signup_method == SignupMethod.MOBILE_SIGNUP:
             send_one_time_pin(user=user, phone_number=msisdn)
             response = {
                 'message': 'User created. Please verify phone number.',
-                'status': 'Success'
-            }
-            return response, 200
-
-        else:
-            response = {
-                'data': {'user': user_schema.dump(user).data},
-                'message': 'User successfully updated.',
                 'status': 'Success'
             }
             return response, 200
