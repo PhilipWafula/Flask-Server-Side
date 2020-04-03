@@ -9,6 +9,7 @@ from app.server.models.organization import Organization
 from app.server.schemas.organization import organization_schema
 from app.server.schemas.json.organization import organization_json_schema
 from app.server.utils.configuration import add_organization_configuration
+from app.server.utils.validation import validate_request
 
 
 def create_organization(configuration: Optional[Dict] = None,
@@ -23,6 +24,9 @@ def create_organization(configuration: Optional[Dict] = None,
     """
     organization = Organization(name=name,
                                 is_master=is_master)
+    # create public identifier
+    organization.set_public_identifier()
+
     db.session.add(organization)
 
     # flush because data dump requires to id
@@ -68,14 +72,15 @@ def process_create_or_update_organization_request(organization_attributes,
                                                   update_organization_allowed=False):
     # check that configuration are tied to a specific organization
     try:
-        validate(instance=organization_attributes,
-                 schema=organization_json_schema)
+        validate_request(instance=organization_attributes,
+                         schema=organization_json_schema)
 
     except ValidationError as exception:
         response = {
-            'error':
-                {'message': exception.message,
-                 'status': 'Fail'}}
+            'error': {
+                'message': 'Invalid request: {}'.format(exception.message),
+                'status': 'Fail'}
+        }
         return response, 422
 
     name = organization_attributes.get('name', None)
@@ -85,9 +90,10 @@ def process_create_or_update_organization_request(organization_attributes,
 
     if not name:
         response = {
-            'error':
-                {'message': 'Organization name cannot be empty.',
-                 'status': 'Fail'}}
+            'error': {
+                'message': 'Organization name cannot be empty.',
+                'status': 'Fail'}
+        }
         return response, 422
 
     if not is_master:
@@ -105,15 +111,18 @@ def process_create_or_update_organization_request(organization_attributes,
                                                name=name)
 
             db.session.commit()
-            response = {'data': organization_schema.dump(organization).data,
-                        'message': 'Successfully updated organization.',
-                        'status': 'Success'}
+            response = {
+                'data': organization_schema.dump(organization).data,
+                'message': 'Successfully updated organization.',
+                'status': 'Success'
+            }
             return response, 200
         except Exception as exception:
             response = {
-                'error':
-                    {'message': '{}'.format(exception),
-                     'status': 'Fail'}}
+                'error': {
+                    'message': '{}'.format(exception),
+                    'status': 'Fail'}
+            }
             return response, 400
 
     response, status_code = create_organization(configuration=configuration,
