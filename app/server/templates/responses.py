@@ -36,3 +36,13 @@ def user_id_not_provided():
         }
     }
     return response, 422
+
+
+def invalid_request_on_validation(message: str):
+    response = {
+        'error': {
+            'message': 'Invalid request: {}'.format(message),
+            'status': 'Fail'
+        }
+    }
+    return response, 400
