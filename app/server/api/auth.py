@@ -3,12 +3,16 @@ from flask import jsonify
 from flask import make_response
 from flask import request
 from flask.views import MethodView
+from jsonschema.exceptions import ValidationError
 
 from app.server import db
 from app.server.models.blacklisted_token import BlacklistedToken
 from app.server.models.user import User
+from app.server.schemas.json.otp_verification import otp_verification_json_schema
 from app.server.schemas.user import user_schema
+from app.server.templates.responses import invalid_request_on_validation
 from app.server.utils.user import process_create_or_update_user_request
+from app.server.utils.validation import validate_request
 
 auth_blueprint = Blueprint('auth', __name__)
 
@@ -42,32 +46,13 @@ class VerifyOneTimePasswordAPI(MethodView):
         otp_token = otp_data.get('otp')
         otp_expiry_interval = otp_data.get('otp_expiry_interval')
 
-        if not msisdn:
-            response = {
-                'error': {
-                    'message': 'No phone number provided.',
-                    'status': 'Fail'
-                }
-            }
-            return make_response(jsonify(response), 400)
+        # validate request
+        try:
+            validate_request(instance=otp_data, schema=otp_verification_json_schema)
 
-        if not otp_token:
-            response = {
-                'error': {
-                    'message': 'No OTP token provided.',
-                    'status': 'Fail'
-                }
-            }
-            return make_response(jsonify(response), 400)
-
-        if not otp_expiry_interval:
-            response = {
-                'error': {
-                    'message': 'No OTP expiry interval provided.',
-                    'status': 'Fail'
-                }
-            }
-            return make_response(jsonify(response), 400)
+        except ValidationError as error:
+            response, status_code = invalid_request_on_validation(error.message)
+            return response, status_code
 
         if not isinstance(otp_token, str):
             response = {

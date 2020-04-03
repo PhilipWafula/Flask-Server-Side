@@ -1,13 +1,13 @@
 from typing import Dict
 from typing import Optional
 
-from jsonschema import validate
 from jsonschema import ValidationError
 
 from app.server import db
 from app.server.models.organization import Organization
 from app.server.schemas.organization import organization_schema
 from app.server.schemas.json.organization import organization_json_schema
+from app.server.templates.responses import invalid_request_on_validation
 from app.server.utils.configuration import add_organization_configuration
 from app.server.utils.validation import validate_request
 
@@ -70,31 +70,20 @@ def update_organization(organization: Organization,
 
 def process_create_or_update_organization_request(organization_attributes,
                                                   update_organization_allowed=False):
-    # check that configuration are tied to a specific organization
-    try:
-        validate_request(instance=organization_attributes,
-                         schema=organization_json_schema)
-
-    except ValidationError as exception:
-        response = {
-            'error': {
-                'message': 'Invalid request: {}'.format(exception.message),
-                'status': 'Fail'}
-        }
-        return response, 422
 
     name = organization_attributes.get('name', None)
     is_master = organization_attributes.get('is_master', None)
     configuration = organization_attributes.get('configuration', None)
     organization_id = organization_attributes.get('organization_id', None)
 
-    if not name:
-        response = {
-            'error': {
-                'message': 'Organization name cannot be empty.',
-                'status': 'Fail'}
-        }
-        return response, 422
+    # check that configuration are tied to a specific organization
+    try:
+        validate_request(instance=organization_attributes,
+                         schema=organization_json_schema)
+
+    except ValidationError as error:
+        response, status_code = invalid_request_on_validation(error.message)
+        return response, status_code
 
     if not is_master:
         is_master = False
