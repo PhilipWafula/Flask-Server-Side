@@ -1,4 +1,4 @@
-configuration_schema = {
+configuration_json_schema = {
     'type': 'object',
     'properties': {
         'access_control_type': {'type': 'string'},
