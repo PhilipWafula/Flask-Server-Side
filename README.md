@@ -12,8 +12,9 @@ You may want to ensure you have the following prerequisites before cloning the r
 
 _This guide assumes you are running a linux DistrOS_
 
-- **Python 3** installed on your system
-
+- **Python 3** installed on your system.
+- Redis
+- PostgreSQL
 - Access to system configurations.
 
  
@@ -80,6 +81,10 @@ Sometimes, branches split and you will have multiple heads:
 ```shell script
 python manage.py db merge heads
 ```
+
+### Testing
+To conduct some gorilla tests on the API, import the provided `test_apis_postman_collections.json` into your postmasn
+application and run the tests from there.
 
 ### Background tasks
 To run background tasks such as sending actual emails and other background tasks, to run celery you're in the
