@@ -7,6 +7,7 @@ class UserSchema(BaseSchema):
     given_name = fields.Str()
     surname = fields.Str()
     identification = fields.Method('get_identification_data')
+    role = fields.Method('get_role_data')
 
     email = fields.Str()
     phone = fields.Str()
@@ -20,5 +21,9 @@ class UserSchema(BaseSchema):
     def get_identification_data(self, user):
         return user.identification
 
+    def get_role_data(self, user):
+        return user.role
+
 
 user_schema = UserSchema()
+users_schema = UserSchema(many=True)

@@ -3,12 +3,16 @@ from flask import jsonify
 from flask import make_response
 from flask import request
 from flask.views import MethodView
+from jsonschema.exceptions import ValidationError
 
 from app.server import db
 from app.server.models.blacklisted_token import BlacklistedToken
 from app.server.models.user import User
+from app.server.schemas.json.otp_verification import otp_verification_json_schema
 from app.server.schemas.user import user_schema
+from app.server.templates.responses import invalid_request_on_validation
 from app.server.utils.user import process_create_or_update_user_request
+from app.server.utils.validation import validate_request
 
 auth_blueprint = Blueprint('auth', __name__)
 
@@ -34,6 +38,7 @@ class VerifyOneTimePasswordAPI(MethodView):
     """
     Verify OTP
     """
+
     def post(self):
         otp_data = request.get_json()
 
@@ -41,19 +46,28 @@ class VerifyOneTimePasswordAPI(MethodView):
         otp_token = otp_data.get('otp')
         otp_expiry_interval = otp_data.get('otp_expiry_interval')
 
-        user = User.query.filter_by(msisdn=msisdn).first()
+        # validate request
+        try:
+            validate_request(instance=otp_data, schema=otp_verification_json_schema)
 
-        malformed_otp = False
+        except ValidationError as error:
+            response, status_code = invalid_request_on_validation(error.message)
+            return response, status_code
 
-        if not isinstance(otp_token, str) or len(otp_token) != 6:
-            malformed_otp = True
-
-        if malformed_otp:
-            response = {'error': {'message': 'OTP must be a 6 digit numeric string'}}
+        if not isinstance(otp_token, str):
+            response = {
+                'error': {
+                        'message': 'OTP must be a 6 digit numeric string',
+                        'status': 'Fail'
+                }
+            }
             return make_response(jsonify(response), 400)
 
+        user = User.query.filter_by(msisdn=msisdn).first()
+
         if user:
-            is_valid_otp = user.verify_otp(otp_token, otp_expiry_interval)
+            is_valid_otp = user.verify_otp(one_time_password=otp_token,
+                                           expiry_interval=otp_expiry_interval)
 
             if is_valid_otp:
                 # activated user
@@ -62,16 +76,31 @@ class VerifyOneTimePasswordAPI(MethodView):
                 # create authentication token
                 auth_token = user.encode_auth_token()
 
-                response = {'authentication_token': auth_token.decode(),
-                            'message': 'User successfully activated.',
-                            'status': 'successful'}
+                if auth_token:
 
-                db.session.commit()
+                    db.session.commit()
 
-                return make_response(jsonify(response), 200)
+                    response = {
+                        'authentication_token': auth_token.decode(),
+                        'message': 'User successfully activated.',
+                        'status': 'Success'}
 
-        response = {'error': {'message': 'Validation failed. Please try again.'}}
+                    return make_response(jsonify(response), 200)
 
+            response = {
+                'error': {
+                    'message': 'Invalid OTP provided.',
+                    'status': 'Fail'
+                }
+            }
+            return make_response(jsonify(response), 400)
+
+        response = {
+            'error': {
+                'message': 'No user found for phone number {}.'.format(msisdn),
+                'status': 'Fail'
+            }
+        }
         return make_response(jsonify(response)), 400
 
 
@@ -83,48 +112,70 @@ class LoginAPI(MethodView):
     def post(self):
         login_data = request.get_json()
 
+        email = login_data.get('email')
         msisdn = login_data.get('msisdn')
         password = login_data.get('password')
 
-        if not msisdn:
-            response = {'error': {'message': 'No phone number supplied.'}}
-            return make_response(response), 401
+        user = None
 
-        else:
-            # check that user with phone exists
+        if email:
+            user = User.query.filter_by(email=email).first()
+
+        if msisdn:
             user = User.query.filter_by(msisdn=msisdn).first()
-            try:
-                if not user or not user.verify_password(password):
-                    response = {'error': {'message': 'Invalid phone number or password.'}}
-                    return make_response(jsonify(response), 401)
 
-                if not user.is_activated:
-                    response = {'error': {'message': 'Account has not been activated. Please check your email.'}}
-                    return make_response(jsonify(response), 401)
-
-                auth_token = user.encode_auth_token()
-
-                if not auth_token:
-                    response = {'error': {'message': 'Invalid username or password.'}}
-                    return make_response(jsonify(response)), 401
-
+        if user:
+            if not user.verify_password(password):
                 response = {
-                    'authentication_token': auth_token.decode(),
-                    'data': {'user': user_schema.dump(user).data},
-                    'message': 'Successfully logged in.',
-                    'status': 'successful'
+                    'error': {
+                        'message': 'Invalid phone number or password.',
+                        'status': 'Fail'
+                    }
                 }
-                return make_response(jsonify(response), 200)
+                return response, 401
 
-            except Exception as exception:
-                response = {'error': {'message': 'System error: {}'.format(exception)}}
-                return make_response(jsonify(response), 500)
+            if not user.is_activated:
+                response = {
+                    'error': {
+                        'message': 'Account has not been activated. Please verify your phone number or email.',
+                        'status': 'Fail'
+                    }
+                }
+                return response, 403
+
+            auth_token = user.encode_auth_token()
+
+            if not auth_token:
+                response = {
+                    'error': {
+                        'message': 'Invalid credentials, phone number, email or password',
+                        'status': 'Fail'
+                    }
+                }
+                return response, 401
+
+            response = {
+                'authentication_token': auth_token.decode(),
+                'data': {'user': user_schema.dump(user).data},
+                'message': 'Successfully logged in.',
+                'status': 'Success'
+            }
+            return response, 200
+
+        response = {
+            'error': {
+                'message': 'Invalid credentials, phone number, email or password',
+                'status': 'Fail'
+            }
+        }
+        return response, 401
 
 
 class LogoutAPI(MethodView):
     """
     Logout out
     """
+
     def post(self):
 
         # get auth token
@@ -147,18 +198,22 @@ class LogoutAPI(MethodView):
                     db.session.add(blacklist_token)
                     db.session.commit()
 
-                    response = {'error': {'message': 'Successfully logged out.'}}
+                    response = {'message': 'Successfully logged out.',
+                                'status': 'Success'}
                     return make_response(jsonify(response)), 200
 
                 except Exception as exception:
-                    response = {'error': {'message': 'Error: {}'.format(exception)}}
-                    return make_response(jsonify(response)), 200
+                    response = {'error': {'message': 'System error: {}.'.format(exception),
+                                          'status': 'Fail'}}
+                    return make_response(jsonify(response)), 500
             else:
-                response = {'error': {'message': decoded_auth_token}}
+                response = {'error': {'message': decoded_auth_token},
+                            'status': 'Fail'}
                 return make_response(jsonify(response)), 401
 
         else:
-            response = {'error': {'message': 'Provide a valid auth token.'}}
+            response = {'error': {'message': 'Provide a valid auth token.',
+                                  'status': 'Fail'}}
             return make_response(jsonify(response)), 403
 
 

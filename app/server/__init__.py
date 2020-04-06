@@ -1,53 +1,58 @@
 import africastalking
-from base64 import b64decode
 import os
-import pyotp
 
-from celery import Celery
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from cryptography.fernet import Fernet
+from flask import Flask
+from flask_cors import CORS
+from flask_mail import Mail
+from flask_sqlalchemy import SQLAlchemy
 
 from app import config
-from app.server.utils.celery import init_celery
 
-PACKAGE_NAME = os.path.dirname(os.path.realpath(__file__)).split("/")[-1]
 fernet_key = Fernet(str(config.SECRET_KEY))
 
 
-def create_app(app_name=PACKAGE_NAME, **kwargs):
+def boilerplate_app():
     # define app
-    app = Flask(app_name)
+    app = Flask(__name__, instance_relative_config=True)
 
     # define config file
     app.config.from_object(config)
 
+    # define base directory
+    app.config['BASEDIR'] = os.path.abspath(os.path.dirname(__file__))
+
     # register extensions
     register_extensions(app)
-
-    # register blueprints
-    register_blueprints(app)
-
-    if kwargs.get("celery"):
-        init_celery(kwargs.get("celery"), app)
 
     return app
 
 
-def make_celery(app_name=__name__):
-    return Celery(app_name,
-                  backend=config.REDIS_URL,
-                  broker=config.REDIS_URL)
+def create_app():
+
+    app = boilerplate_app()
+
+    # register blueprints
+    register_blueprints(app)
+
+    return app
 
 
 def register_blueprints(application):
     url_version = '/api/v1'
     from app.server.api.auth import auth_blueprint
+    from app.server.api.organization import organization_blueprint
+    from app.server.api.users import user_blueprint
     application.register_blueprint(auth_blueprint, url_prefix=url_version)
+    application.register_blueprint(organization_blueprint, url_prefix=url_version)
+    application.register_blueprint(user_blueprint, url_prefix=url_version)
 
 
 def register_extensions(app):
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+
     db.init_app(app)
+    mailer.init_app(app)
 
 
 def fernet_encrypt(secret):
@@ -62,9 +67,6 @@ def fernet_decrypt(token):
     return secret
 
 
-# create instance of celery app
-celery = make_celery()
-
 # define db
 db = SQLAlchemy()
 
@@ -73,3 +75,6 @@ africastalking.initialize(username=config.AFRICASTALKING_USERNAME,
                           api_key=config.AFRICASTALKING_API_KEY)
 
 sms = africastalking.SMS
+
+# initialize mailer
+mailer = Mail()

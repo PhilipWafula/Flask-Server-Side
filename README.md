@@ -23,6 +23,20 @@ We use ` git secret` and encrypt our configuration files using gpg keys. To get 
 setup [git secret](https://git-secret.io/). Once complete, reach out to [Philip Wafula](philipwafula2@gmailcom)
 and request to have your public gpg key added to the public keys set in the `.gitsecret` file.
 
+Once your credentials have been added to the key ring, decrypt the config files:
+```shell script
+git secret reveal
+```
+
+Succeeding a successful decryption of the config files, change the configurations to match your local environment 
+set up:
+
+```
+password                                     = your_password
+database                                     = flask_server_side_development/flask_server_side_testing
+user                                         = your_database_user
+```
+
 ### Installing
 
 To get your dev environment setup locally:
@@ -42,7 +56,7 @@ This script also exports the application's parent folder to $PYTHONPATH to ensur
 in the application.
 
 ### Database
-First, setup your database `faulu_apis_development`, using the username and password from the local config file.
+First, setup your postgres database `flask_server_side_development`, using the username and password from the local config file.
 
 Next, to update your database to the latest migration file:
 
@@ -65,6 +79,14 @@ Sometimes, branches split and you will have multiple heads:
 
 ```shell script
 python manage.py db merge heads
+```
+
+### Background tasks
+To run background tasks such as sending actual emails and other background tasks, to run celery you're in the
+root directory then run:
+
+```shell script
+celery worker -A worker.tasks --loglevel=info
 ```
 
 
