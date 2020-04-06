@@ -82,6 +82,10 @@ Sometimes, branches split and you will have multiple heads:
 python manage.py db merge heads
 ```
 
+### Testing
+To conduct some gorilla tests on the API, import the provided `test_apis_postman_collections.json` into your postmasn
+application and run the tests from there.
+
 ### Background tasks
 To run background tasks such as sending actual emails and other background tasks, to run celery you're in the
 root directory then run:
