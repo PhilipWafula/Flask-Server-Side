@@ -3,6 +3,7 @@ import os
 
 from cryptography.fernet import Fernet
 from flask import Flask
+from flask_cors import CORS
 from flask_mail import Mail
 from flask_sqlalchemy import SQLAlchemy
 
@@ -48,6 +49,8 @@ def register_blueprints(application):
 
 
 def register_extensions(app):
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+
     db.init_app(app)
     mailer.init_app(app)
 
