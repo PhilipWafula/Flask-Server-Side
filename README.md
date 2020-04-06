@@ -12,8 +12,9 @@ You may want to ensure you have the following prerequisites before cloning the r
 
 _This guide assumes you are running a linux DistrOS_
 
-- **Python 3** installed on your system
-
+- **Python 3** installed on your system.
+- Redis
+- PostgreSQL
 - Access to system configurations.
 
  
