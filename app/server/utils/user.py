@@ -150,12 +150,12 @@ def process_create_or_update_user_request(user_attributes,
     if not organization:
         response = {
             'error': {
-                'message': 'User cannot be created without at least a master organization. Please create one.',
+                'message': 'User cannot be created without a parent organization. No organization found for public identifier: {}.'.format(public_identifier),
                 'status': 'Fail'
             }
         }
 
-        return response, 422
+        return response, 403
 
     # process sign up methods
     if signup_method:
