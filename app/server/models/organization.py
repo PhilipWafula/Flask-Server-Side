@@ -15,6 +15,7 @@ class Organization(BaseModel):
     configuration = db.relationship('Configuration', uselist=False, back_populates='organization')
     is_master = db.Column(db.Boolean, default=False, index=True)
     public_identifier = db.Column(db.String(8), nullable=False, index=True, unique=True)
+    address = db.Column(db.String, nullable=True)
 
     users = db.relationship('User', backref='organization')
 
