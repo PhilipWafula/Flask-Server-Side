@@ -8,7 +8,7 @@ from app.server import app_logger
 from app.server import ContextEnvironment
 from app.server.constants import SUPPORTED_MAILER_SETTINGS
 from app.server.models.organization import Organization
-from app.server.templates.mails import MailMessage
+from app.server.templates.mail_messages import MailMessage
 from worker import tasks
 
 
