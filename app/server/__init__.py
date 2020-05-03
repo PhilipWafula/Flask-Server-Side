@@ -1,15 +1,19 @@
 import africastalking
+import logging
 import os
 
 from cryptography.fernet import Fernet
 from flask import Flask
+from flask import jsonify
+from flask import make_response
+from flask import request
 from flask_cors import CORS
 from flask_mail import Mail
 from flask_sqlalchemy import SQLAlchemy
 
 from app import config
 
-fernet_key = Fernet(str(config.SECRET_KEY))
+fernet_key = Fernet(config.SECRET_KEY)
 
 
 def boilerplate_app():
@@ -29,7 +33,6 @@ def boilerplate_app():
 
 
 def create_app():
-
     app = boilerplate_app()
 
     # register blueprints
@@ -50,6 +53,20 @@ def register_blueprints(application):
 
 def register_extensions(app):
     CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+    @app.before_request
+    def before_request():
+        if request.method == 'POST':
+            # check for json data
+            json_data = request.get_json()
+            if not json_data:
+                response = {
+                    'error': {
+                        'message': 'Invalid request format. Please provide a valid JSON body.',
+                        'status': 'Fail'
+                    }
+                }
+                return make_response(jsonify(response), 403)
 
     db.init_app(app)
     mailer.init_app(app)
@@ -78,3 +95,23 @@ sms = africastalking.SMS
 
 # initialize mailer
 mailer = Mail()
+
+# application logger defaults to DEBUG
+logging.basicConfig(level=logging.DEBUG)
+app_logger = logging.getLogger(__name__)
+
+
+class ContextEnvironment:
+    def __init__(self, app):
+        self.deployment_name = app.config['DEPLOYMENT_NAME']
+
+    def is_development(self):
+        return self.deployment_name == 'development'
+
+    def is_production(self):
+        return self.deployment_name == 'production'
+
+    def is_testing(self):
+        return self.deployment_name == 'testing'
+
+

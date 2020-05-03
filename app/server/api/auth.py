@@ -1,16 +1,24 @@
 from flask import Blueprint
+from flask import current_app
 from flask import jsonify
 from flask import make_response
 from flask import request
 from flask.views import MethodView
 from jsonschema.exceptions import ValidationError
 
+from app.server import app_logger
+from app.server import ContextEnvironment
 from app.server import db
 from app.server.models.blacklisted_token import BlacklistedToken
 from app.server.models.user import User
 from app.server.schemas.json.otp_verification import otp_verification_json_schema
+from app.server.schemas.json.reset_password import reset_password_json_schema
 from app.server.schemas.user import user_schema
 from app.server.templates.responses import invalid_request_on_validation
+from app.server.templates.responses import mailer_not_configured
+from app.server.utils.auth import requires_auth
+from app.server.utils.mailer import check_mailer_configured
+from app.server.utils.mailer import Mailer
 from app.server.utils.user import process_create_or_update_user_request
 from app.server.utils.validation import validate_request
 
@@ -32,6 +40,59 @@ class RegisterAPI(MethodView):
             status_code = 201
 
         return make_response(jsonify(response), status_code)
+
+
+class ActivateUserAPI(MethodView):
+    def post(self):
+        activate_user_data = request.get_json()
+
+        activation_token = activate_user_data.get('activation_token', None)
+
+        if not activation_token:
+            response = {
+                'error': {
+                    'message': 'Activation token is required.',
+                    'status': 'Fail'
+                }
+            }
+            return make_response(jsonify(response), 400)
+
+        decoded_token_response = User.decode_single_use_jws(token=activation_token,
+                                                            required_token_type='user_activation')
+
+        is_valid_token = decoded_token_response['status'] == 'Success'
+        if not is_valid_token:
+            response = {
+                'error': {
+                    'message': decoded_token_response['message'],
+                    'status': 'Fail'
+                }
+            }
+            return make_response(jsonify(response), 401)
+
+        user: User = decoded_token_response.get('user', None)
+        is_already_activated = user.is_activated
+
+        if is_already_activated:
+            response = {
+                'error': {
+                    'message': 'User is already activated. Please login.',
+                    'status': 'Fail'
+                }
+            }
+            return make_response(jsonify(response), 403)
+
+        user.is_activated = True
+        authentication_token = user.encode_auth_token()
+        db.session.commit()
+
+        response = {
+            'authentication_token': authentication_token.decode(),
+            'data': {'user': user_schema.dump(user).data},
+            'message': 'User successfully activated.',
+            'status': 'Success'
+        }
+        return make_response(jsonify(response), 200)
 
 
 class VerifyOneTimePasswordAPI(MethodView):
@@ -57,8 +118,8 @@ class VerifyOneTimePasswordAPI(MethodView):
         if not isinstance(otp_token, str):
             response = {
                 'error': {
-                        'message': 'OTP must be a 6 digit numeric string',
-                        'status': 'Fail'
+                    'message': 'OTP must be a 6 digit numeric string',
+                    'status': 'Fail'
                 }
             }
             return make_response(jsonify(response), 400)
@@ -74,18 +135,16 @@ class VerifyOneTimePasswordAPI(MethodView):
                 user.is_activated = True
 
                 # create authentication token
-                auth_token = user.encode_auth_token()
+                authentication_token = user.encode_auth_token()
+                db.session.commit()
 
-                if auth_token:
-
-                    db.session.commit()
-
-                    response = {
-                        'authentication_token': auth_token.decode(),
-                        'message': 'User successfully activated.',
-                        'status': 'Success'}
-
-                    return make_response(jsonify(response), 200)
+                response = {
+                    'authentication_token': authentication_token.decode(),
+                    'data': {'user': user_schema.dump(user).data},
+                    'message': 'User successfully activated.',
+                    'status': 'Success'
+                }
+                return make_response(jsonify(response), 200)
 
             response = {
                 'error': {
@@ -217,26 +276,163 @@ class LogoutAPI(MethodView):
             return make_response(jsonify(response)), 403
 
 
+class RequestPasswordResetEmailAPI(MethodView):
+    @requires_auth
+    def post(self):
+        request_password_reset_data = request.get_json()
+        email = request_password_reset_data.get('email')
+
+        if not email:
+            response = {
+                'error': {
+                    'message': 'No email was provided.',
+                    'status': 'Fail'
+                }
+            }
+            return make_response(jsonify(response), 400)
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            response = {
+                'error': {
+                    'message': 'No user with that email was found.',
+                    'status': 'Fail'
+                }
+            }
+            return make_response(jsonify(response), 403)
+
+        password_reset_token = user.encode_single_use_jws(token_type='password_reset')
+        organization = user.parent_organization
+        given_names = user.given_names
+
+        mailer_is_configured = check_mailer_configured(organization)
+
+        if not mailer_is_configured:
+            response, status_code = mailer_not_configured()
+            return make_response(jsonify(response), status_code)
+
+        context_environment = ContextEnvironment(current_app)
+        user.save_password_reset_token(password_reset_token)
+        db.session.commit()
+
+        mailer = Mailer(organization=organization)
+        mailer.send_reset_password_email(email=email,
+                                         given_names=given_names,
+                                         password_reset_token=password_reset_token)
+
+        if context_environment.is_development() or context_environment.is_testing():
+            app_logger.info("IS NOT PRODUCTION\n"
+                            "PASSWORD RESET TOKEN: {}".format(password_reset_token))
+
+        response = {
+            'message': 'A password reset email has been sent, please check your email for instructions.',
+            'status': 'Success'
+        }
+        return make_response(jsonify(response), 200)
+
+
+class ResetPasswordAPI(MethodView):
+    @requires_auth
+    def post(self):
+        reset_password_data = request.get_json()
+
+        # attempt validation
+        validate_request(instance=reset_password_data, schema=reset_password_json_schema)
+        new_password = reset_password_data.get('new_password', None)
+        password_reset_token = reset_password_data.get('password_reset_token', None)
+
+        if new_password and len(new_password) < 8:
+            response = {
+                'error':
+                    {
+                        'message': 'Password must be at least 8 characters long.',
+                        'status': 'Fail'
+                    }
+            }
+            return response, 422
+
+        decoded_token_response = User.decode_single_use_jws(token=password_reset_token,
+                                                            required_token_type='password_reset')
+
+        is_valid_token = decoded_token_response['status'] == 'Success'
+        if not is_valid_token:
+            response = {
+                'error': {
+                    'message': decoded_token_response['message'],
+                    'status': 'Fail'
+                }
+            }
+            return make_response(jsonify(response), 401)
+
+        user: User = decoded_token_response.get('user', None)
+
+        is_used_token = user.check_is_used_password_reset_token(password_reset_token=password_reset_token)
+        if is_used_token:
+            response = {
+                'error': {
+                    'message': 'This token has already been used.',
+                    'status': 'Fail'
+                }
+            }
+            return make_response(jsonify(response), 401)
+
+        user.hash_password(new_password)
+        user.remove_all_password_reset_tokens()
+        db.session.commit()
+
+        response = {
+            'message': 'Password successfully changed. Please log in.',
+            'status': 'Success'
+        }
+        return make_response(jsonify(response), 200)
+
+
+register_api_view = RegisterAPI.as_view('register_api')
+activate_user_api_view = ActivateUserAPI.as_view('activate_user_api')
+verify_otp_api_view = VerifyOneTimePasswordAPI.as_view('verify_otp_api')
+login_api_view = LoginAPI.as_view('login_api')
+logout_api_view = LogoutAPI.as_view('logout_api')
+request_password_reset_email_api_view = RequestPasswordResetEmailAPI.as_view('request_password_reset_email_api')
+reset_password_api_view = ResetPasswordAPI.as_view('reset_password_api')
+
 auth_blueprint.add_url_rule(
     '/auth/register/',
-    view_func=RegisterAPI.as_view('register_api'),
+    view_func=register_api_view,
+    methods=['POST']
+)
+
+auth_blueprint.add_url_rule(
+    '/auth/activate_user/',
+    view_func=activate_user_api_view,
     methods=['POST']
 )
 
 auth_blueprint.add_url_rule(
     '/auth/verify_otp/',
-    view_func=VerifyOneTimePasswordAPI.as_view('verify_otp_api'),
+    view_func=verify_otp_api_view,
     methods=['POST']
 )
 
 auth_blueprint.add_url_rule(
     '/auth/login/',
-    view_func=LoginAPI.as_view('login_api'),
+    view_func=login_api_view,
     methods=['POST']
 )
 
 auth_blueprint.add_url_rule(
     '/auth/logout/',
-    view_func=LogoutAPI.as_view('logout_api'),
+    view_func=logout_api_view,
+    methods=['POST']
+)
+
+auth_blueprint.add_url_rule(
+    '/auth/request_password_reset_email/',
+    view_func=request_password_reset_email_api_view,
+    methods=['POST']
+)
+
+auth_blueprint.add_url_rule(
+    '/auth/reset_password/',
+    view_func=reset_password_api_view,
     methods=['POST']
 )

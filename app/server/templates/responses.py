@@ -46,3 +46,13 @@ def invalid_request_on_validation(message: str):
         }
     }
     return response, 400
+
+
+def mailer_not_configured():
+    response = {
+        'error': {
+            'message': 'Please configure your mailer, to facilitate admin registration.',
+            'status': 'Fail'
+        }
+    }
+    return response, 403

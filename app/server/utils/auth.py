@@ -62,7 +62,7 @@ def requires_auth(function=None,
                                           'status': 'Fail'}}
                     return make_response(jsonify(response), 401)
 
-                if len(authenticated_roles) > 0:
+                if authenticated_roles and len(authenticated_roles) > 0:
                     # get user role
                     user_role_dict = decoded_user_data.get('role', {})
 

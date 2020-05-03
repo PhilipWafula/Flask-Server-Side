@@ -1,8 +1,11 @@
+from flask import current_app
 from jsonschema.exceptions import ValidationError
 
 from phonenumbers import NumberParseException
 from urllib.parse import urlparse
 
+from app.server import app_logger
+from app.server import ContextEnvironment
 from app.server import db
 from app.server.models.organization import Organization
 from app.server.models.user import User
@@ -10,8 +13,10 @@ from app.server.models.user import SignupMethod
 from app.server.schemas.json.user import user_json_schema
 from app.server.schemas.user import user_schema
 from app.server.templates.responses import invalid_request_on_validation
+from app.server.templates.responses import mailer_not_configured
 from app.server.utils.enums.access_control_enums import AccessControlType
-from app.server.utils.mailer import send_user_activation_email
+from app.server.utils.mailer import check_mailer_configured
+from app.server.utils.mailer import Mailer
 from app.server.utils.messaging import send_one_time_pin
 from app.server.utils.validation import validate_request
 from app.server.utils.phone import process_phone_number
@@ -150,7 +155,8 @@ def process_create_or_update_user_request(user_attributes,
     if not organization:
         response = {
             'error': {
-                'message': 'User cannot be created without a parent organization. No organization found for public identifier: {}.'.format(public_identifier),
+                'message': 'User cannot be created without a parent organization.'
+                           'No organization found for public identifier: {}.'.format(public_identifier),
                 'status': 'Fail'
             }
         }
@@ -176,7 +182,7 @@ def process_create_or_update_user_request(user_attributes,
 
     if email and signup_method == SignupMethod.WEB_SIGNUP:
         # get user's organization configs
-        organization_configuration = organization.configuration
+        organization_configuration: Organization = organization.configuration
 
         # get domain
         domain = organization_configuration.domain
@@ -186,14 +192,20 @@ def process_create_or_update_user_request(user_attributes,
         if domain:
             # get domain netloc
             parsed_domain = urlparse(domain)
-            first_level_domain = parsed_domain.netloc
+            network_location = parsed_domain.netloc
+            port = parsed_domain.port
+
+            base_domain = network_location
 
             # process domain
-            if 'www.' in first_level_domain:
-                base_domain = domain.strip('www.')
+            if 'www.' in network_location:
+                base_domain = base_domain.strip('www.')
+
+            if port:
+                base_domain = base_domain.strip(':{}'.format(str(port)))
 
         # check that the base domain is in the email
-        if email and base_domain in email and signup_method == SignupMethod.WEB_SIGNUP:
+        if base_domain in email:
 
             # check whether user with admin role exists
             existing_user = User.query.filter_by(email=email).first()
@@ -221,6 +233,13 @@ def process_create_or_update_user_request(user_attributes,
 
                 return response, 403
 
+            # ensure mailer settings are configured since admin creation relies on the application mailer
+            mailer_is_configured = check_mailer_configured(organization)
+
+            if not mailer_is_configured:
+                response, status_code = mailer_not_configured()
+                return response, status_code
+
             # create user with admin role
             admin = create_user(email=email,
                                 given_names=given_names,
@@ -236,13 +255,19 @@ def process_create_or_update_user_request(user_attributes,
                 admin.set_user_role(role='ADMIN', tier='SYSTEM_ADMIN')
 
             # encode single use activation token
-            activation_token = admin.encode_single_use_jws(token_type='activation')
+            activation_token = admin.encode_single_use_jws(token_type='user_activation')
+
+            context_environment = ContextEnvironment(current_app)
 
             # send activation email
-            send_user_activation_email(activation_token=activation_token,
-                                       email=email,
-                                       given_names=given_names,
-                                       organization=organization)
+            mailer = Mailer(organization=organization)
+            mailer.send_user_activation_email(activation_token=activation_token,
+                                              email=email,
+                                              given_names=given_names)
+
+            if context_environment.is_development() or context_environment.is_testing():
+                app_logger.info("IS NOT PRODUCTION\n"
+                                "ACTIVATION TOKEN: {}".format(activation_token))
 
             response = {
                 'data': {'user': user_schema.dump(admin).data},

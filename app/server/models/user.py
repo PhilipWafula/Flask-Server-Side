@@ -8,6 +8,7 @@ from datetime import timedelta
 from itsdangerous import BadSignature
 from itsdangerous import SignatureExpired
 from itsdangerous import TimedJSONWebSignatureSerializer
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import flag_modified
@@ -21,6 +22,7 @@ from app.server.constants import IDENTIFICATION_TYPES
 from app.server.exceptions import IdentificationTypeNotFoundException
 from app.server.exceptions import RoleNotFoundException
 from app.server.exceptions import TierNotFoundException
+from app.server.utils.models import MutableList
 from app.server.models.blacklisted_token import BlacklistedToken
 from app.server.models.organization import Organization
 from app.server.utils.enums.auth_enums import SignupMethod
@@ -52,6 +54,7 @@ class User(BaseModel):
     signup_method = db.Column(db.Enum(SignupMethod))
 
     _role = db.Column(JSONB, default={}, nullable=True)
+    password_reset_tokens = db.Column(MutableList.as_mutable(ARRAY(db.String)))
 
     parent_organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'))
     parent_organization = db.relationship('Organization',
@@ -217,6 +220,33 @@ class User(BaseModel):
 
         except Exception as exception:
             return {'status': 'Fail', 'message': exception}
+
+    def clear_invalid_password_reset_tokens(self):
+        if self.password_reset_tokens is None:
+            self.password_reset_tokens = []
+
+        valid_tokens = []
+        for token in self.password_reset_tokens:
+            decoded_token_response = self.decode_single_use_jws(token=token,
+                                                                required_token_type='password_reset')
+            is_valid_token = decoded_token_response['status'] == 'Success'
+            if is_valid_token:
+                valid_tokens.append(token)
+        return valid_tokens
+
+    def save_password_reset_token(self, password_reset_token):
+        if self.password_reset_tokens is None:
+            self.password_reset_tokens = []
+        self.password_reset_tokens.append(password_reset_token)
+
+    def check_is_used_password_reset_token(self, password_reset_token):
+        print(self.password_reset_tokens)
+        self.clear_invalid_password_reset_tokens()
+        is_used = password_reset_token not in self.password_reset_tokens
+        return is_used
+
+    def remove_all_password_reset_tokens(self):
+        self.password_reset_tokens = []
 
     def set_otp_secret(self):
         # generate random otp_secret
