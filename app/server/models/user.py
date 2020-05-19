@@ -1,10 +1,10 @@
+from datetime import datetime
+from datetime import timedelta
+
 import bcrypt
 import jwt
 import pyotp
-
 from cryptography.fernet import Fernet
-from datetime import datetime
-from datetime import timedelta
 from itsdangerous import BadSignature
 from itsdangerous import SignatureExpired
 from itsdangerous import TimedJSONWebSignatureSerializer
@@ -12,22 +12,19 @@ from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import flag_modified
-from typing import Optional
 
 from app import config
 from app.server import db
 from app.server import fernet_decrypt
 from app.server import fernet_encrypt
-from app.server.constants import IDENTIFICATION_TYPES
-from app.server.exceptions import IdentificationTypeNotFoundException
-from app.server.exceptions import RoleNotFoundException
-from app.server.exceptions import TierNotFoundException
-from app.server.utils.models import MutableList
+from app.server.constants import IDENTIFICATION_TYPES, SUPPORTED_ROLES
+from app.server.exceptions import IdentificationTypeNotFoundException, RoleNotFoundException
 from app.server.models.blacklisted_token import BlacklistedToken
 from app.server.models.organization import Organization
+from app.server.models.role import Role
 from app.server.utils.enums.auth_enums import SignupMethod
-from app.server.utils.enums.access_control_enums import AccessControlType
 from app.server.utils.models import BaseModel
+from app.server.utils.models import MutableList
 
 
 class User(BaseModel):
@@ -41,7 +38,7 @@ class User(BaseModel):
 
     _identification = db.Column(JSONB, default={}, nullable=True)
     email = db.Column(db.String, index=True, nullable=True, unique=True)
-    msisdn = db.Column(db.String(length=13), index=True, nullable=True, unique=True)
+    phone = db.Column(db.String(length=13), index=True, nullable=True, unique=True)
     address = db.Column(db.String)
 
     date_of_birth = db.Column(db.Date)
@@ -53,7 +50,6 @@ class User(BaseModel):
 
     signup_method = db.Column(db.Enum(SignupMethod))
 
-    _role = db.Column(JSONB, default={}, nullable=True)
     password_reset_tokens = db.Column(MutableList.as_mutable(ARRAY(db.String)))
 
     parent_organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'))
@@ -61,6 +57,9 @@ class User(BaseModel):
                                           primaryjoin=Organization.id == parent_organization_id,
                                           lazy=True,
                                           uselist=False)
+
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
+    role = db.relationship("Role", back_populates="users")
 
     @hybrid_property
     def identification(self):
@@ -133,7 +132,7 @@ class User(BaseModel):
                 'exp': datetime.utcnow() + timedelta(days=7, seconds=0),
                 'iat': datetime.utcnow(),
                 'id': self.id,
-                'role': self.role
+                'role': self.role.name
             }
 
             return jwt.encode(
@@ -240,7 +239,6 @@ class User(BaseModel):
         self.password_reset_tokens.append(password_reset_token)
 
     def check_is_used_password_reset_token(self, password_reset_token):
-        print(self.password_reset_tokens)
         self.clear_invalid_password_reset_tokens()
         is_used = password_reset_token not in self.password_reset_tokens
         return is_used
@@ -263,12 +261,12 @@ class User(BaseModel):
 
         return one_time_password
 
-    def _get_otp_secret(self):
+    def get_otp_secret(self):
         return fernet_decrypt(self._otp_secret.encode('utf-8'))
 
     def verify_otp(self, one_time_password, expiry_interval):
         # get secret used to create one time password
-        otp_secret = self._get_otp_secret()
+        otp_secret = self.get_otp_secret()
 
         # verify one time password validity
         is_valid = pyotp.TOTP(otp_secret, interval=expiry_interval).verify(one_time_password)
@@ -282,40 +280,18 @@ class User(BaseModel):
     def get_user_organization(self):
         return self.organization
 
-    @hybrid_property
-    def role(self):
-        return self._role
+    # method responsible for returning user details that make it easier to identify a user.
+    def user_details(self):
+        if self.given_names and self.surname:
+            return f'{self.given_names} {self.surname} {self.phone}'
+        return f'{self.phone}'
 
-    def set_user_role(self, role: str, tier: Optional[str] = None):
+    def set_role(self, role: str):
+        # check that role is supported in system constants
+        if role not in SUPPORTED_ROLES:
+            raise RoleNotFoundException('The provided role is not supported')
+        user_role = Role.query.filter_by(name=role).first()
+        self.role_id = user_role.id
 
-        # correct role value in db.
-        if self._role is None:
-            self._role = {}
-
-        # check for role system in use from user's parent organization's sys configs
-        user_organization = self.get_user_organization()
-        system_configs = user_organization.configuration
-
-        # get organization access roles
-        access_roles = system_configs.access_roles or []
-
-        # get organization access tiers
-        access_tiers = system_configs.access_tiers or []
-
-        if system_configs.access_control_type == AccessControlType.STANDARD_ACCESS_CONTROL:
-            if role not in access_roles:
-                raise RoleNotFoundException('The provided role: {} is not recognized.'.format(role))
-
-            if role and tier is None:
-                self._role[role] = 'STANDARD'
-                flag_modified(self, '_role')
-
-        if system_configs.access_control_type == AccessControlType.TIERED_ACCESS_CONTROL:
-            if tier and tier not in access_tiers:
-                raise TierNotFoundException('The provided tier is not recognized.'.format(tier))
-
-            if tier is None:
-                self._role.pop(role, None)
-            else:
-                self._role[role] = tier
-                flag_modified(self, '_role')
+    def __repr__(self):
+        return 'User %r' % self.phone

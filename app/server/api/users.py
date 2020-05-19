@@ -4,7 +4,6 @@ from flask import make_response
 from flask.views import MethodView
 
 from app.server.models.user import User
-from app.server.utils.auth import requires_auth
 from app.server.utils.query import paginate_query
 from app.server.schemas.user import user_schema
 from app.server.schemas.user import users_schema
@@ -19,7 +18,6 @@ def get_organization_by_id(user_id):
 
 
 class UsersAPI(MethodView):
-    @requires_auth(authenticated_roles=['ADMIN'])
     def get(self, user_id):
         if user_id:
             user = User.query.execution_options(show_all=True).get(user_id)

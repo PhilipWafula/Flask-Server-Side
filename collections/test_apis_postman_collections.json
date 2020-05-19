@@ -12,7 +12,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"name\": \"Test Organization\",\n\t\"configuration\": {\n\t\t\"access_control_type\": \"STANDARD_ACCESS_CONTROL\",\n\t\t\"access_roles\": [\"ADMIN\", \"CLIENT\"],\n\t\t\"access_tiers\": [\"STANDARD\"]\n\t},\n\t\"is_master\": true\n}",
+					"raw": "{\n\t\"name\": \"Test Organization\",\n\t\"is_master\": true,\n\t\"address\": \"P.O.Box 56465\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -82,7 +82,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"given_names\": \"Jon Snow\",\n\t\"surname\": \"Stark\",\n\t\"msisdn\": \"0712345678\",\n\t\"password\": \"password-123\",\n\t\"id_type\": \"NATIONAL_ID\",\n\t\"id_value\": \"12345678\",\n\t\"signup_method\": \"MOBILE\",\n\t\"public_identifier\": \"I8oYbCyD\"\n}",
+					"raw": "{\n\t\"given_names\": \"Jon Snow\",\n\t\"surname\": \"Stark\",\n\t\"phone\": \"0712345678\",\n\t\"password\": \"password-123\",\n\t\"id_type\": \"NATIONAL_ID\",\n\t\"id_value\": \"12345678\",\n\t\"signup_method\": \"MOBILE\",\n\t\"public_identifier\": \"G3sM4tv7\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -117,7 +117,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"msisdn\": \"+254712345678\",\n\t\"otp\": \"609212\",\n\t\"otp_expiry_interval\": 3600\n\t\n}",
+					"raw": "{\n\t\"phone\": \"+254712345678\",\n\t\"otp\": \"652198\",\n\t\"otp_expiry_interval\": 3600\n\t\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -139,6 +139,103 @@
 						"v1",
 						"auth",
 						"verify_otp",
+						""
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "Verify OTP",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"msisdn\": \"+254712345678\",\n\t\"otp\": \"571613\",\n\t\"otp_expiry_interval\": 3600\n\t\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/api/v1/auth/verify_otp/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"verify_otp",
+								""
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Content-Length",
+							"value": "702"
+						},
+						{
+							"key": "Access-Control-Allow-Origin",
+							"value": "*"
+						},
+						{
+							"key": "Server",
+							"value": "Werkzeug/1.0.0 Python/3.6.3"
+						},
+						{
+							"key": "Date",
+							"value": "Sat, 11 Apr 2020 22:43:32 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"authentication_token\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1ODcyNDk4MTIsImlhdCI6MTU4NjY0NTAxMiwiaWQiOjEsInJvbGUiOnsiQ0xJRU5UIjoiU1RBTkRBUkQifX0.Py9jh0svA_WO-YUMeJhMrbuGESaq3jPhWc_WrtWwGBo\",\n    \"data\": {\n        \"user\": {\n            \"address\": null,\n            \"created_at\": \"2020-04-11T22:42:55.114567+00:00\",\n            \"date_of_birth\": null,\n            \"email\": null,\n            \"id\": 1,\n            \"identification\": {\n                \"NATIONAL_ID\": \"12345678\"\n            },\n            \"is_activated\": true,\n            \"role\": {\n                \"CLIENT\": \"STANDARD\"\n            },\n            \"surname\": \"Stark\",\n            \"updated_at\": \"2020-04-11T22:43:32.250726+00:00\"\n        }\n    },\n    \"message\": \"User successfully activated.\",\n    \"status\": \"Success\"\n}"
+				}
+			]
+		},
+		{
+			"name": "Resend OTP",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"phone\": \"+254712345678\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/v1/auth/resend_otp/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"resend_otp",
 						""
 					]
 				}
@@ -187,7 +284,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"given_names\": \"John Doe\",\n\t\"surname\": \"Jane\",\n\t\"email\": \"admin1@testdomain.com\",\n\t\"password\": \"password-123\",\n\t\"signup_method\": \"WEB\",\n\t\"public_identifier\": \"FxQ8zzDL\"\n}",
+					"raw": "{\n\t\"given_names\": \"John Doe\",\n\t\"surname\": \"Jane\",\n\t\"email\": \"admin2@localhost.com\",\n\t\"password\": \"password-123\",\n\t\"signup_method\": \"WEB\",\n\t\"public_identifier\": \"G3sM4tv7\",\n\t\"role\": \"ADMIN\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -216,13 +313,48 @@
 			"response": []
 		},
 		{
+			"name": "Activate Admin User",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"activation_token\": \"eyJhbGciOiJIUzUxMiIsImlhdCI6MTU4OTg2NzE5OSwiZXhwIjoxNTg5OTUzNTk5fQ.eyJpZCI6MSwidHlwZSI6InVzZXJfYWN0aXZhdGlvbiJ9.9IeNaspoBk52OhZfgl_0ohdTeMrSGDVjFiFRC02ophzzirINw606Jluj87A0Y8LyA--HDHhqse5PT0viQc2wKw\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/v1/auth/activate_user/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"activate_user",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "Login Admin User",
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"email\": \"admin@testdomain.com\",\n\t\"password\": \"password-123\"\n}",
+					"raw": "{\n\t\"email\": \"admin2@localhost.com\",\n\t\"password\": \"new-password\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -262,10 +394,19 @@
 					},
 					{
 						"key": "Authorization",
-						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1ODUyNjk1NzUsImlhdCI6MTU4NDY2NDc3NSwiaWQiOjF9.vO_nDVmbfdmKDXuuN4Nd1O7w4QWAXbLYt24MMVZ8Ae8",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1OTA0NzI5MDMsImlhdCI6MTU4OTg2ODEwMywiaWQiOjEsInJvbGUiOiJBRE1JTiJ9.SlT8ADFmu31Gg3KKMTFCOA9qKMfFRBxfVOqgZcQ2v30",
 						"type": "text"
 					}
 				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"action\": \"logout\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
 				"url": {
 					"raw": "http://127.0.0.1:8000/api/v1/auth/logout/",
 					"protocol": "http",
@@ -288,10 +429,108 @@
 			"response": []
 		},
 		{
+			"name": "RequestPasswordResetEmail",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1ODcyNTYzOTcsImlhdCI6MTU4NjY1MTU5NywiaWQiOjEsInJvbGUiOnsiQ0xJRU5UIjoiU1RBTkRBUkQifX0.DuK6CGqbG0RdvOBcGnHz9crtk9uxdC4hbJ_sBzGHeGk",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"email\": \"admin2@localhost.com\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/v1/auth/request_password_reset_email/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"request_password_reset_email",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ResetPassword",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1ODcyNTYzOTcsImlhdCI6MTU4NjY1MTU5NywiaWQiOjEsInJvbGUiOnsiQ0xJRU5UIjoiU1RBTkRBUkQifX0.DuK6CGqbG0RdvOBcGnHz9crtk9uxdC4hbJ_sBzGHeGk",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"new_password\": \"new-password\",\n\t\"password_reset_token\": \"eyJhbGciOiJIUzUxMiIsImlhdCI6MTU4OTg2NzUyMCwiZXhwIjoxNTg5OTUzOTIwfQ.eyJpZCI6MSwidHlwZSI6InBhc3N3b3JkX3Jlc2V0In0.zJWp24KCTGGEvykZ8eLgHv3jVcYDe2bBiwJGUFFtsftWqTT8kRN9vXxT4Nh9thqPcYlQnPiA6kLGE0swEFJaCA\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/v1/auth/reset_password/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"reset_password",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "Get All Organizations",
 			"request": {
 				"method": "GET",
-				"header": [],
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1OTA0NzIwNDYsImlhdCI6MTU4OTg2NzI0NiwiaWQiOjEsInJvbGUiOiJBRE1JTiJ9.FH8p-fgq5BhwpPJ6VYt3k9adRcyhz2xErAGk3kVR8YM",
+						"type": "text"
+					}
+				],
 				"url": {
 					"raw": "http://127.0.0.1:8000/api/v1/organization/",
 					"protocol": "http",
@@ -316,9 +555,20 @@
 			"name": "Get Specific Organization",
 			"request": {
 				"method": "GET",
-				"header": [],
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1OTA0NzIwNDYsImlhdCI6MTU4OTg2NzI0NiwiaWQiOjEsInJvbGUiOiJBRE1JTiJ9.FH8p-fgq5BhwpPJ6VYt3k9adRcyhz2xErAGk3kVR8YM",
+						"type": "text"
+					}
+				],
 				"url": {
-					"raw": "http://127.0.0.1:8000/api/v1/organization/1",
+					"raw": "http://127.0.0.1:8000/api/v1/organization/1/",
 					"protocol": "http",
 					"host": [
 						"127",
@@ -331,7 +581,8 @@
 						"api",
 						"v1",
 						"organization",
-						"1"
+						"1",
+						""
 					]
 				}
 			},
@@ -349,7 +600,7 @@
 					},
 					{
 						"key": "Authorization",
-						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1ODY0MzU2MzEsImlhdCI6MTU4NTgzMDgzMSwiaWQiOjEsInJvbGUiOnsiQURNSU4iOiJTVEFOREFSRCJ9fQ.__zGkiU7z4lIO0Kw4nI5IfMx1HpeRW5TokBAW2oYnd8",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1OTA0NzIwNDYsImlhdCI6MTU4OTg2NzI0NiwiaWQiOjEsInJvbGUiOiJBRE1JTiJ9.FH8p-fgq5BhwpPJ6VYt3k9adRcyhz2xErAGk3kVR8YM",
 						"type": "text"
 					}
 				],
@@ -367,142 +618,6 @@
 						"api",
 						"v1",
 						"users",
-						""
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Get Organization Configuration",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://127.0.0.1:8000/api/v1/organization/1/configuration",
-					"protocol": "http",
-					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
-					],
-					"port": "8000",
-					"path": [
-						"api",
-						"v1",
-						"organization",
-						"1",
-						"configuration"
-					]
-				},
-				"description": "Get organization configuration."
-			},
-			"response": []
-		},
-		{
-			"name": "Update Organization Configuration",
-			"request": {
-				"method": "PUT",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n\t\"organization_id\": 1,\n\t\"access_control_type\": \"STANDARD\",\n\t\"domain\": \"www.testdomain.com\",\n\t\"mailer_settings\": {\n\t\t\"default_sender\": \"hello@testdomain.com\",\n\t\t\"max_emails\": \"None\",\n\t\t\"password\": \"sct211-0072/2016\",\n\t\t\"port\": \"25\",\n\t\t\"server\": \"localhost\",\n\t\t\"use_ssl\": false,\n\t\t\"use_tsl\":false,\n\t\t\"username\": \"Test Organization\"\n\t}\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://127.0.0.1:8000/api/v1/organization/1/configuration/",
-					"protocol": "http",
-					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
-					],
-					"port": "8000",
-					"path": [
-						"api",
-						"v1",
-						"organization",
-						"1",
-						"configuration",
-						""
-					]
-				},
-				"description": "Update specific organization configuration"
-			},
-			"response": []
-		},
-		{
-			"name": "Delete specific role",
-			"request": {
-				"method": "DELETE",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n\t\"access_roles\": [\"ADMIN\"]\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://127.0.0.1:8000/api/v1/organization/1/configuration/",
-					"protocol": "http",
-					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
-					],
-					"port": "8000",
-					"path": [
-						"api",
-						"v1",
-						"organization",
-						"1",
-						"configuration",
-						""
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Edit configuration ",
-			"request": {
-				"method": "PUT",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n\t\"mailer_settings\": {\n\t\t\"username\": \"Test Organization\"\t\n\t}\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://127.0.0.1:8000/api/v1/organization/1/configuration/",
-					"protocol": "http",
-					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
-					],
-					"port": "8000",
-					"path": [
-						"api",
-						"v1",
-						"organization",
-						"1",
-						"configuration",
 						""
 					]
 				}

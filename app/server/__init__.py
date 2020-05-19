@@ -113,5 +113,3 @@ class ContextEnvironment:
 
     def is_testing(self):
         return self.deployment_name == 'testing'
-
-

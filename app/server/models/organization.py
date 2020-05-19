@@ -11,8 +11,8 @@ class Organization(BaseModel):
     """
     __tablename__ = 'organizations'
 
+    # attributes
     name = db.Column(db.String(100))
-    configuration = db.relationship('Configuration', uselist=False, back_populates='organization')
     is_master = db.Column(db.Boolean, default=False, index=True)
     public_identifier = db.Column(db.String(8), nullable=False, index=True, unique=True)
     address = db.Column(db.String, nullable=True)

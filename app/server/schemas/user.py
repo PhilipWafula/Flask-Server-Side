@@ -22,7 +22,7 @@ class UserSchema(BaseSchema):
         return user.identification
 
     def get_role_data(self, user):
-        return user.role
+        return user.role.name
 
 
 user_schema = UserSchema()

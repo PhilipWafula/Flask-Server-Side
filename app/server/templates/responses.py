@@ -56,3 +56,11 @@ def mailer_not_configured():
         }
     }
     return response, 403
+
+
+def otp_resent_successfully():
+    response = {
+        'message': 'Pin resent successfully.',
+        'status': 'Success'
+    }
+    return response, 200

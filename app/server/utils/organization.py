@@ -8,56 +8,36 @@ from app.server.models.organization import Organization
 from app.server.schemas.organization import organization_schema
 from app.server.schemas.json.organization import organization_json_schema
 from app.server.templates.responses import invalid_request_on_validation
-from app.server.utils.configuration import add_organization_configuration
 from app.server.utils.validation import validate_request
 
 
-def create_organization(configuration: Optional[Dict] = None,
-                        name=None,
-                        is_master=False):
+def create_organization(address=None,
+                        is_master=False,
+                        name=None) -> Organization:
     """
     This function creates an organization with attributes  provided.
+    :param address:
     :param is_master:
-    :param configuration:
     :param name: The organization's name.
     :return: An organization object.
     """
-    organization = Organization(name=name,
+    organization = Organization(address=address,
+                                name=name,
                                 is_master=is_master)
     # create public identifier
     organization.set_public_identifier()
 
     db.session.add(organization)
 
-    # flush because data dump requires to id
-    db.session.flush()
-
-    if configuration:
-        access_control_type = configuration.get('access_control_type', None)
-        access_roles = configuration.get('access_roles', None)
-        access_tiers = configuration.get('access_tiers', None)
-        domain = configuration.get('domain', None)
-
-        response, status_code = add_organization_configuration(access_control_type=access_control_type,
-                                                               access_roles=access_roles,
-                                                               access_tiers=access_tiers,
-                                                               domain=domain,
-                                                               organization_id=organization.id)
-
-        if status_code != 200:
-            return response, status_code
-
-    response = {'data': organization_schema.dump(organization).data,
-                'message': 'Successfully created organization.',
-                'status': 'Success'}
-
-    return response, 200
+    return organization
 
 
 def update_organization(organization: Organization,
+                        address=None,
                         name=None) -> Organization:
     """
     This functions updates an organization's attributes.
+    :param address:
     :param organization: The organization object to modify
     :param name: The organizations name.
     :return: An organization object.
@@ -65,18 +45,20 @@ def update_organization(organization: Organization,
     if name:
         organization.name = name
 
+    if address:
+        organization.address = address
+
     return organization
 
 
 def process_create_or_update_organization_request(organization_attributes,
                                                   update_organization_allowed=False):
-
+    address = organization_attributes.get('address', None)
     name = organization_attributes.get('name', None)
     is_master = organization_attributes.get('is_master', None)
-    configuration = organization_attributes.get('configuration', None)
     organization_id = organization_attributes.get('organization_id', None)
 
-    # check that configuration are tied to a specific organization
+    # check that settings are tied to a specific organization
     try:
         validate_request(instance=organization_attributes,
                          schema=organization_json_schema)
@@ -97,6 +79,7 @@ def process_create_or_update_organization_request(organization_attributes,
     if existing_organization and update_organization_allowed:
         try:
             organization = update_organization(organization=existing_organization,
+                                               address=address,
                                                name=name)
 
             db.session.commit()
@@ -114,12 +97,12 @@ def process_create_or_update_organization_request(organization_attributes,
             }
             return response, 400
 
-    response, status_code = create_organization(configuration=configuration,
-                                                name=name,
-                                                is_master=is_master)
+    organization = create_organization(name=name,
+                                       address=address,
+                                       is_master=is_master)
 
-    if status_code == 200:
-        db.session.commit()
-        status_code = 201
+    response = {'data': organization_schema.dump(organization).data,
+                'message': 'Successfully created organization.',
+                'status': 'Success'}
 
-    return response, status_code
+    return response, 200

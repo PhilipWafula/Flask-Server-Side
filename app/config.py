@@ -43,34 +43,21 @@ if DEPLOYMENT_ENVIRONMENT.lower() != DEPLOYMENT_NAME.lower():
 IS_TEST = config_file_parser['APP'].getboolean('IS_TEST', False)
 IS_PRODUCTION = config_file_parser['APP'].getboolean('IS_PRODUCTION')
 
-# get secret key
+# get application configs
 SECRET_KEY = config_file_parser['APP'].get('secret_key')
+APP_HOST = config_file_parser['APP'].get('host')
+APP_PORT = config_file_parser['APP'].get('port')
+APP_DOMAIN = config_file_parser['APP'].get('client_domain')
+DEFAULT_COUNTRY = config_file_parser['APP'].get('default_country')
 
-# get application host
-APP_HOST = config_file_parser['APP']['HOST']
+# define redis configs
+REDIS_URL = 'redis://' + config_file_parser['REDIS'].get('uri')
 
-# get application port
-APP_PORT = config_file_parser['APP']['PORT']
-
-# get default country
-DEFAULT_COUNTRY = config_file_parser['APP']['DEFAULT_COUNTRY']
-
-# define redis uri
-REDIS_URL = 'redis://' + config_file_parser['REDIS']['URI']
-
-# get database user
+# get database configs
 DATABASE_USER = config_file_parser['DATABASE'].get('user')
-
-# get database password
-DATABASE_PASSWORD = config_file_parser['DATABASE']['password']
-
-# get database host
-DATABASE_HOST = config_file_parser['DATABASE']['host']
-
-# get database name
+DATABASE_PASSWORD = config_file_parser['DATABASE'].get('password')
+DATABASE_HOST = config_file_parser['DATABASE'].get('host')
 DATABASE_NAME = config_file_parser['DATABASE'].get('database')
-
-# get database port
 DATABASE_PORT = config_file_parser['DATABASE'].get('port')
 
 
@@ -82,7 +69,6 @@ def get_database_uri(name, host, censored=True):
                                                 name)
 
 
-# build sqlalchemy uri
 SQLALCHEMY_DATABASE_URI = get_database_uri(DATABASE_NAME, DATABASE_HOST,
                                            censored=False)
 
@@ -92,14 +78,21 @@ CENSORED_URI = get_database_uri(DATABASE_NAME, DATABASE_HOST,
 
 print('Working database URI: ' + CENSORED_URI)
 
-# define sqlalchemy track modifications
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # get password pepper
-PASSWORD_PEPPER = config_file_parser['APP']['PASSWORD_PEPPER']
+PASSWORD_PEPPER = config_file_parser['APP'].get('password_pepper')
 
-# get africa's talking username
-AFRICASTALKING_USERNAME = config_file_parser['AFRICASTALKING']['USERNAME']
+# get africa's talking credentials
+AFRICASTALKING_USERNAME = config_file_parser['AFRICASTALKING'].get('username')
+AFRICASTALKING_API_KEY = config_file_parser['AFRICASTALKING'].get('api_key')
 
-# get africa's talking api key
-AFRICASTALKING_API_KEY = config_file_parser['AFRICASTALKING']['API_KEY']
+# define mailer settings
+MAILER_SERVER = config_file_parser['MAILER'].get('server')
+MAILER_PORT = config_file_parser['MAILER'].get('port')
+MAILER_USERNAME = config_file_parser['MAILER'].get('username')
+MAILER_PASSWORD = config_file_parser['MAILER'].get('password')
+MAILER_DEFAULT_SENDER = config_file_parser['MAILER'].get('default_sender')
+MAILER_MAX_EMAILS = config_file_parser['MAILER'].get('max_emails')
+MAILER_USE_SSL = config_file_parser['MAILER'].getboolean('use_ssl')
+MAILER_USE_TSL = config_file_parser['MAILER'].getboolean('use_tsl')

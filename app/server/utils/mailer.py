@@ -4,21 +4,34 @@ import os
 from datetime import datetime
 from flask import current_app
 
+from app.server import config
 from app.server import app_logger
 from app.server import ContextEnvironment
-from app.server.constants import SUPPORTED_MAILER_SETTINGS
 from app.server.models.organization import Organization
 from app.server.templates.mail_messages import MailMessage
 from worker import tasks
 
 
 def check_mailer_configured(organization: Organization):
-    organization_configuration = organization.configuration
-    mailer_is_configured = False
-    mailer_settings = organization_configuration.mailer_settings
-    if len(mailer_settings.items()) == len(SUPPORTED_MAILER_SETTINGS):
-        mailer_is_configured = True
-    return mailer_is_configured
+    settings = organization
+    # check that mailing sender is configured
+    mailer_setting_missing = True
+    if settings:
+        # get mailer settings
+        mailer_settings = [config.MAILER_SERVER,
+                           config.MAILER_PORT,
+                           config.MAILER_USERNAME,
+                           config.MAILER_PASSWORD,
+                           config.MAILER_DEFAULT_SENDER,
+                           config.MAILER_USE_SSL,
+                           config.MAILER_USE_TSL]
+        # check if any is None
+        mailer_setting_missing = any(setting is None for setting in mailer_settings)
+
+    if mailer_setting_missing:
+        return False
+    else:
+        return True
 
 
 def _get_email_template(template_file):
@@ -33,16 +46,6 @@ def _get_email_template(template_file):
     template_environment = jinja2.Environment(loader=template_loader)
 
     return template_environment.get_template(template_file)
-
-
-def _get_mailer_settings(organization: Organization):
-    # get organization configuration
-    organization_configuration = organization.configuration
-
-    # get mailer settings
-    organization_mailer_settings = organization_configuration.mailer_settings
-
-    return organization_mailer_settings
 
 
 def _get_mail_body(action: str,
@@ -88,7 +91,6 @@ def _mail_handler(email_recipients: list,
                   subject: str,
                   text_body,
                   html_body=None):
-
     context_env = ContextEnvironment(current_app)
     if context_env.is_development or context_env.is_testing:
         recipients_logging_format = ', '.join(email_recipients)
@@ -108,15 +110,14 @@ class Mailer:
         self.organization = organization
         self.organization_name = organization.name
         self.mail_message = MailMessage(self.organization_name)
-        self.mail_sender = _get_mailer_settings(organization).get('DEFAULT_SENDER', None)
+        self.mail_sender = config.MAILER_DEFAULT_SENDER
         self.organization_address = organization.address
-        self.organization_domain = organization.configuration.domain
+        self.organization_domain = config.APP_DOMAIN
 
     def send_user_activation_email(self,
                                    activation_token: str,
                                    email: str,
                                    given_names: str):
-
         action_tag, mail_message = self.mail_message.activate_user_mail_message()
         action_url = self.organization_domain + '/login?activation_token={}'.format(activation_token)
         copyright_year = datetime.now().year
@@ -152,7 +153,6 @@ class Mailer:
                                   email: str,
                                   given_names: str,
                                   password_reset_token: str, ):
-
         action_tag, mail_message = self.mail_message.reset_user_password_mail_message()
         action_url = self.organization_domain + '/reset-password?token={}'.format(password_reset_token)
         copyright_year = datetime.now().year

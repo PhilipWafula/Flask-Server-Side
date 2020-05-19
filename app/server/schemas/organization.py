@@ -1,13 +1,11 @@
 from marshmallow import fields
 
-from app.server.schemas.configuration import ConfigurationSchema
 from app.server.utils.schemas import BaseSchema
 
 
 class OrganizationSchema(BaseSchema):
+    address = fields.Str()
     name = fields.Str()
-    is_master = fields.Boolean()
-    configuration = fields.Nested('ConfigurationSchema')
     public_identifier = fields.String()
 
 

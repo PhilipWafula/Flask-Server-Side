@@ -10,10 +10,3 @@ class RoleNotFoundException(Exception):
     Raise if provided role is not in organization's defined roles
     """
     pass
-
-
-class TierNotFoundException(Exception):
-    """
-    Raise if provided tier is not in organization's defined tier
-    """
-    pass

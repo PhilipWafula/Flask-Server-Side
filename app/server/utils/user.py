@@ -1,25 +1,18 @@
-from flask import current_app
 from jsonschema.exceptions import ValidationError
-
 from phonenumbers import NumberParseException
-from urllib.parse import urlparse
 
-from app.server import app_logger
-from app.server import ContextEnvironment
 from app.server import db
+from app.server.constants import SUPPORTED_ROLES
 from app.server.models.organization import Organization
-from app.server.models.user import User
 from app.server.models.user import SignupMethod
+from app.server.models.user import User
 from app.server.schemas.json.user import user_json_schema
 from app.server.schemas.user import user_schema
-from app.server.templates.responses import invalid_request_on_validation
-from app.server.templates.responses import mailer_not_configured
-from app.server.utils.enums.access_control_enums import AccessControlType
-from app.server.utils.mailer import check_mailer_configured
-from app.server.utils.mailer import Mailer
+from app.server.templates.responses import invalid_request_on_validation, mailer_not_configured
+from app.server.utils.mailer import Mailer, check_mailer_configured
 from app.server.utils.messaging import send_one_time_pin
-from app.server.utils.validation import validate_request
 from app.server.utils.phone import process_phone_number
+from app.server.utils.validation import validate_request
 
 
 def get_organization(public_identifier: str):
@@ -32,26 +25,28 @@ def get_organization(public_identifier: str):
 def create_user(given_names=None,
                 surname=None,
                 email=None,
-                msisdn=None,
+                phone=None,
                 address=None,
                 date_of_birth=None,
                 id_type=None,
                 id_value=None,
                 password=None,
-                signup_method=SignupMethod.MOBILE_SIGNUP,
+                role=None,
+                signup_method=None,
                 organization: Organization = None):
     """
-    :param organization:
-    :param signup_method:
-    :param given_names:
-    :param surname:
-    :param email:
-    :param msisdn:
-    :param address:
-    :param date_of_birth:
-    :param id_type:
-    :param id_value:
-    :param password:
+    :param role: The user's role
+    :param organization: The organization the user belongs to
+    :param signup_method: The channel through which teh user was signed up
+    :param given_names: The collective first names the user identifies with
+    :param surname: The user's surname
+    :param email: The user's email address
+    :param phone: The user's phone number
+    :param address: The user's physical postal address
+    :param date_of_birth: The user's date of birth
+    :param id_type: The form of identification used by the user
+    :param id_value: The value tied to that ID type
+    :param password: Value of user's password
     :return:
     """
 
@@ -59,7 +54,7 @@ def create_user(given_names=None,
     user = User(given_names=given_names,
                 surname=surname,
                 email=email,
-                msisdn=msisdn,
+                phone=phone,
                 date_of_birth=date_of_birth,
                 address=address,
                 signup_method=signup_method)
@@ -82,12 +77,14 @@ def create_user(given_names=None,
     # bind user to organization
     user.bind_user_to_organization(organization)
 
-    db.session.add(user)
-    db.session.flush()
+    # set user role
+    if role:
+        user.set_role(role)
+    # default to client role
+    else:
+        user.set_role('CLIENT')
 
-    # handle setting roles
-    if signup_method == SignupMethod.MOBILE_SIGNUP:
-        user.set_user_role(role='CLIENT')
+    db.session.add(user)
 
     return user
 
@@ -132,7 +129,7 @@ def process_create_or_update_user_request(user_attributes,
     given_names = user_attributes.get('given_names')
     surname = user_attributes.get('surname')
     email = user_attributes.get('email')
-    msisdn = user_attributes.get('msisdn')
+    phone = user_attributes.get('phone')
     address = user_attributes.get('address')
     date_of_birth = user_attributes.get('date_of_birth')
     id_type = user_attributes.get('id_type')
@@ -140,6 +137,7 @@ def process_create_or_update_user_request(user_attributes,
     password = user_attributes.get('password')
     signup_method = user_attributes.get('signup_method')
     public_identifier = user_attributes.get('public_identifier')
+    role = user_attributes.get('role')
 
     # verify request
     try:
@@ -176,113 +174,28 @@ def process_create_or_update_user_request(user_attributes,
             'error':
                 {
                     'message': 'Password must be at least 8 characters long.',
-                    'status': 'Fail'}
+                    'status': 'Fail'
+                }
         }
         return response, 422
 
-    if email and signup_method == SignupMethod.WEB_SIGNUP:
-        # get user's organization configs
-        organization_configuration: Organization = organization.configuration
-
-        # get domain
-        domain = organization_configuration.domain
-        base_domain = ''
-
-        # process domain
-        if domain:
-            # get domain netloc
-            parsed_domain = urlparse(domain)
-            network_location = parsed_domain.netloc
-            port = parsed_domain.port
-
-            base_domain = network_location
-
-            # process domain
-            if 'www.' in network_location:
-                base_domain = base_domain.strip('www.')
-
-            if port:
-                base_domain = base_domain.strip(':{}'.format(str(port)))
-
-        # check that the base domain is in the email
-        if base_domain in email:
-
-            # check whether user with admin role exists
-            existing_user = User.query.filter_by(email=email).first()
-
-            if existing_user:
-
-                existing_user_is_activated = existing_user.is_activated
-
-                if not existing_user_is_activated:
-                    response = {
-                        'error': {
-                            'message': 'User already exists. Please check email to activate your account.',
-                            'status': 'Fail'
-                        }
-                    }
-
-                    return response, 403
-
-                response = {
-                    'error': {
-                        'message': 'User already exists. Please log in',
-                        'status': 'Fail'
-                    }
-                }
-
-                return response, 403
-
-            # ensure mailer settings are configured since admin creation relies on the application mailer
-            mailer_is_configured = check_mailer_configured(organization)
-
-            if not mailer_is_configured:
-                response, status_code = mailer_not_configured()
-                return response, status_code
-
-            # create user with admin role
-            admin = create_user(email=email,
-                                given_names=given_names,
-                                password=password,
-                                surname=surname,
-                                signup_method=signup_method)
-
-            # set admin roles
-            if organization_configuration.access_control_type == AccessControlType.STANDARD_ACCESS_CONTROL:
-                admin.set_user_role(role='ADMIN')
-
-            if organization_configuration.access_control_type == AccessControlType.TIERED_ACCESS_CONTROL:
-                admin.set_user_role(role='ADMIN', tier='SYSTEM_ADMIN')
-
-            # encode single use activation token
-            activation_token = admin.encode_single_use_jws(token_type='user_activation')
-
-            context_environment = ContextEnvironment(current_app)
-
-            # send activation email
-            mailer = Mailer(organization=organization)
-            mailer.send_user_activation_email(activation_token=activation_token,
-                                              email=email,
-                                              given_names=given_names)
-
-            if context_environment.is_development() or context_environment.is_testing():
-                app_logger.info("IS NOT PRODUCTION\n"
-                                "ACTIVATION TOKEN: {}".format(activation_token))
-
-            response = {
-                'data': {'user': user_schema.dump(admin).data},
-                'message': 'Successfully created admin. Check email to activate.',
-                'status': 'Success'
+    if role and role not in SUPPORTED_ROLES:
+        response = {
+            'error': {
+                'message': 'Unsupported role provided.',
+                'status': 'Fail'
             }
-            return response, 200
+        }
+        return response, 422
 
-    # validate msisdn
-    if not msisdn:
+    # validate phone
+    if not phone and signup_method == SignupMethod.MOBILE_SIGNUP:
         response = {
             'error':
                 {
                     'message': 'Phone number cannot be empty.',
-                    'status': 'Fail'}
+                    'status': 'Fail'
+                }
         }
         return response, 422
     else:
@@ -292,24 +205,26 @@ def process_create_or_update_user_request(user_attributes,
                 'error':
                     {
                         'message': 'ID data cannot be empty.',
-                        'status': 'Fail'}
+                        'status': 'Fail'
+                    }
             }
             return response, 422
 
         # process phone number and ensure phone number validity
         try:
-            msisdn = process_phone_number(msisdn)
+            phone = process_phone_number(phone)
         except NumberParseException as exception:
             response = {
                 'error':
                     {
                         'message': 'Invalid phone number. ERROR: {}'.format(exception),
-                        'status': 'Fail'}
+                        'status': 'Fail'
+                    }
             }
             return response, 422
 
         # check if user is already existent
-        existing_user = User.query.filter_by(msisdn=msisdn).first()
+        existing_user = User.query.filter_by(phone=phone).first()
 
         # check if request is an update request
         if existing_user and not user_update_allowed:
@@ -317,7 +232,8 @@ def process_create_or_update_user_request(user_attributes,
                 'error':
                     {
                         'message': 'User already exists. Please Log in.',
-                        'status': 'Fail'}
+                        'status': 'Fail'
+                    }
             }
             return response, 403
 
@@ -333,7 +249,9 @@ def process_create_or_update_user_request(user_attributes,
                 db.session.commit()
 
                 response = {
-                    'data': {'user': user_schema.dump(user).data},
+                    'data': {
+                        'user': user_schema.dump(user).data
+                    },
                     'message': 'User successfully updated.',
                     'status': 'Success'
                 }
@@ -341,26 +259,52 @@ def process_create_or_update_user_request(user_attributes,
                 return response, 200
 
             except Exception as exception:
-                response = {'error': {'message': '{}'.format(exception),
-                                      'status': 'Fail'}}
+                response = {
+                    'error': {
+                        'message': '{}'.format(exception),
+                        'status': 'Fail'
+                    }
+                }
                 return response, 400
 
-        # create client user
+        # create user
         user = create_user(given_names=given_names,
                            surname=surname,
                            email=email,
-                           msisdn=msisdn,
+                           phone=phone,
                            address=address,
                            date_of_birth=date_of_birth,
                            password=password,
                            id_type=id_type,
-                           id_value=id_value)
+                           id_value=id_value,
+                           role=role,
+                           signup_method=signup_method)
+        db.session.commit()
 
         # send user OTP to validate user's phone number
         if signup_method == SignupMethod.MOBILE_SIGNUP:
-            send_one_time_pin(user=user, phone_number=msisdn)
+            send_one_time_pin(user=user, phone_number=phone)
             response = {
                 'message': 'User created. Please verify phone number.',
+                'status': 'Success'
+            }
+            return response, 200
+
+        # send email for user to validate their email as admin
+        if user.role.name == 'ADMIN' and signup_method == SignupMethod.WEB_SIGNUP:
+            mailer_is_configured = check_mailer_configured(organization)
+            if not mailer_is_configured:
+                response, status_code = mailer_not_configured()
+                return response, status_code
+
+            mailer = Mailer(organization)
+            activation_token = user.encode_single_use_jws(token_type='user_activation')
+            mailer.send_user_activation_email(activation_token=activation_token,
+                                              email=user.email,
+                                              given_names=user.given_names)
+
+            response = {
+                'message': 'User created. Please check your email to verify your account.',
                 'status': 'Success'
             }
             return response, 200

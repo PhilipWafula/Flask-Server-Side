@@ -1,24 +1,21 @@
+import pyotp
 from flask import Blueprint
-from flask import current_app
 from flask import jsonify
 from flask import make_response
 from flask import request
 from flask.views import MethodView
 from jsonschema.exceptions import ValidationError
 
-from app.server import app_logger
-from app.server import ContextEnvironment
 from app.server import db
 from app.server.models.blacklisted_token import BlacklistedToken
 from app.server.models.user import User
 from app.server.schemas.json.otp_verification import otp_verification_json_schema
 from app.server.schemas.json.reset_password import reset_password_json_schema
 from app.server.schemas.user import user_schema
-from app.server.templates.responses import invalid_request_on_validation
-from app.server.templates.responses import mailer_not_configured
-from app.server.utils.auth import requires_auth
+from app.server.templates.responses import invalid_request_on_validation, mailer_not_configured, otp_resent_successfully
 from app.server.utils.mailer import check_mailer_configured
 from app.server.utils.mailer import Mailer
+from app.server.utils.messaging import send_sms, send_one_time_pin
 from app.server.utils.user import process_create_or_update_user_request
 from app.server.utils.validation import validate_request
 
@@ -29,9 +26,7 @@ class RegisterAPI(MethodView):
     """
     Create user
     """
-
     def post(self):
-        # get registration data
         user_data = request.get_json()
 
         response, status_code = process_create_or_update_user_request(user_attributes=user_data)
@@ -43,6 +38,9 @@ class RegisterAPI(MethodView):
 
 
 class ActivateUserAPI(MethodView):
+    """
+    Activate users
+    """
     def post(self):
         activate_user_data = request.get_json()
 
@@ -95,6 +93,42 @@ class ActivateUserAPI(MethodView):
         return make_response(jsonify(response), 200)
 
 
+class ResendOneTimePasswordAPI(MethodView):
+    """
+    Request OTP to be resent
+    """
+    def post(self):
+        resend_otp_data = request.get_json()
+        phone = resend_otp_data.get('phone')
+        user = User.query.filter_by(phone=phone).first()
+        otp_secret = user.get_otp_secret()
+
+        # check if use is always activated
+        if user.is_activated:
+            response = {
+                'error': {
+                    'message': 'User is already activated, please log in.',
+                    'status': 'Fail'
+                }
+            }
+            return make_response(jsonify(response), 400)
+
+        # get old OTP
+        old_otp = pyotp.TOTP(otp_secret, interval=3600).now()
+
+        # check if old OTP is expired
+        is_valid_otp = user.verify_otp(one_time_password=old_otp, expiry_interval=3600)
+        if is_valid_otp:
+            message = "Hello {}, your activation code is: {}".format(user.given_names, old_otp)
+            send_sms(message=message, phone_number=phone)
+        else:
+            # generate new OTP
+            send_one_time_pin(user, user.phone)
+
+        response, status_code = otp_resent_successfully()
+        return make_response(jsonify(response), status_code)
+
+
 class VerifyOneTimePasswordAPI(MethodView):
     """
     Verify OTP
@@ -103,7 +137,7 @@ class VerifyOneTimePasswordAPI(MethodView):
     def post(self):
         otp_data = request.get_json()
 
-        msisdn = otp_data.get('msisdn')
+        phone = otp_data.get('phone')
         otp_token = otp_data.get('otp')
         otp_expiry_interval = otp_data.get('otp_expiry_interval')
 
@@ -124,7 +158,7 @@ class VerifyOneTimePasswordAPI(MethodView):
             }
             return make_response(jsonify(response), 400)
 
-        user = User.query.filter_by(msisdn=msisdn).first()
+        user = User.query.filter_by(phone=phone).first()
 
         if user:
             is_valid_otp = user.verify_otp(one_time_password=otp_token,
@@ -139,7 +173,7 @@ class VerifyOneTimePasswordAPI(MethodView):
                 db.session.commit()
 
                 response = {
-                    'authentication_token': authentication_token.decode(),
+                    'authentication_token': authentication_token.decode('utf-8'),
                     'data': {'user': user_schema.dump(user).data},
                     'message': 'User successfully activated.',
                     'status': 'Success'
@@ -156,11 +190,11 @@ class VerifyOneTimePasswordAPI(MethodView):
 
         response = {
             'error': {
-                'message': 'No user found for phone number {}.'.format(msisdn),
+                'message': 'No user found for phone number {}.'.format(phone),
                 'status': 'Fail'
             }
         }
-        return make_response(jsonify(response)), 400
+        return make_response(jsonify(response), 400)
 
 
 class LoginAPI(MethodView):
@@ -172,7 +206,7 @@ class LoginAPI(MethodView):
         login_data = request.get_json()
 
         email = login_data.get('email')
-        msisdn = login_data.get('msisdn')
+        phone = login_data.get('phone')
         password = login_data.get('password')
 
         user = None
@@ -180,8 +214,8 @@ class LoginAPI(MethodView):
         if email:
             user = User.query.filter_by(email=email).first()
 
-        if msisdn:
-            user = User.query.filter_by(msisdn=msisdn).first()
+        if phone:
+            user = User.query.filter_by(phone=phone).first()
 
         if user:
             if not user.verify_password(password):
@@ -237,6 +271,19 @@ class LogoutAPI(MethodView):
 
     def post(self):
 
+        logout_instruction = request.get_json()
+
+        action = logout_instruction.get('action', None)
+
+        if not action or action != 'logout':
+            response = {
+                'error': {
+                    'message': 'Invalid action provided for logout.',
+                    'status': 'Fail'
+                }
+            }
+            return make_response(jsonify(response), 400)
+
         # get auth token
         auth_header = request.headers.get('Authorization')
 
@@ -257,27 +304,40 @@ class LogoutAPI(MethodView):
                     db.session.add(blacklist_token)
                     db.session.commit()
 
-                    response = {'message': 'Successfully logged out.',
-                                'status': 'Success'}
+                    response = {
+                        'message': 'Successfully logged out.',
+                        'status': 'Success'
+                    }
                     return make_response(jsonify(response)), 200
 
                 except Exception as exception:
-                    response = {'error': {'message': 'System error: {}.'.format(exception),
-                                          'status': 'Fail'}}
+                    response = {
+                        'error': {
+                            'message': 'System error: {}.'.format(exception),
+                            'status': 'Fail'
+                        }
+                    }
                     return make_response(jsonify(response)), 500
             else:
-                response = {'error': {'message': decoded_auth_token},
-                            'status': 'Fail'}
+                response = {
+                    'error': {
+                        'message': decoded_auth_token,
+                        'status': 'Fail'
+                    }
+                }
                 return make_response(jsonify(response)), 401
 
         else:
-            response = {'error': {'message': 'Provide a valid auth token.',
-                                  'status': 'Fail'}}
+            response = {
+                'error': {
+                    'message': 'Provide a valid auth token.',
+                    'status': 'Fail'
+                }
+            }
             return make_response(jsonify(response)), 403
 
 
 class RequestPasswordResetEmailAPI(MethodView):
-    @requires_auth
     def post(self):
         request_password_reset_data = request.get_json()
         email = request_password_reset_data.get('email')
@@ -311,7 +371,6 @@ class RequestPasswordResetEmailAPI(MethodView):
             response, status_code = mailer_not_configured()
             return make_response(jsonify(response), status_code)
 
-        context_environment = ContextEnvironment(current_app)
         user.save_password_reset_token(password_reset_token)
         db.session.commit()
 
@@ -319,10 +378,6 @@ class RequestPasswordResetEmailAPI(MethodView):
         mailer.send_reset_password_email(email=email,
                                          given_names=given_names,
                                          password_reset_token=password_reset_token)
-
-        if context_environment.is_development() or context_environment.is_testing():
-            app_logger.info("IS NOT PRODUCTION\n"
-                            "PASSWORD RESET TOKEN: {}".format(password_reset_token))
 
         response = {
             'message': 'A password reset email has been sent, please check your email for instructions.',
@@ -332,7 +387,6 @@ class RequestPasswordResetEmailAPI(MethodView):
 
 
 class ResetPasswordAPI(MethodView):
-    @requires_auth
     def post(self):
         reset_password_data = request.get_json()
 
@@ -343,11 +397,10 @@ class ResetPasswordAPI(MethodView):
 
         if new_password and len(new_password) < 8:
             response = {
-                'error':
-                    {
-                        'message': 'Password must be at least 8 characters long.',
-                        'status': 'Fail'
-                    }
+                'error': {
+                    'message': 'Password must be at least 8 characters long.',
+                    'status': 'Fail'
+                }
             }
             return response, 422
 
@@ -392,6 +445,7 @@ activate_user_api_view = ActivateUserAPI.as_view('activate_user_api')
 verify_otp_api_view = VerifyOneTimePasswordAPI.as_view('verify_otp_api')
 login_api_view = LoginAPI.as_view('login_api')
 logout_api_view = LogoutAPI.as_view('logout_api')
+resend_otp_api_view = ResendOneTimePasswordAPI.as_view('resend_otp_api')
 request_password_reset_email_api_view = RequestPasswordResetEmailAPI.as_view('request_password_reset_email_api')
 reset_password_api_view = ResetPasswordAPI.as_view('reset_password_api')
 
@@ -410,6 +464,12 @@ auth_blueprint.add_url_rule(
 auth_blueprint.add_url_rule(
     '/auth/verify_otp/',
     view_func=verify_otp_api_view,
+    methods=['POST']
+)
+
+auth_blueprint.add_url_rule(
+    '/auth/resend_otp/',
+    view_func=resend_otp_api_view,
     methods=['POST']
 )
 

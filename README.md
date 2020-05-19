@@ -15,12 +15,12 @@ _This guide assumes you are running a linux DistrOS_
 - **Python 3** installed on your system.
 - Redis
 - PostgreSQL
-- Access to system configurations.
+- Access to system settingss.
 
  
-### Getting system configurations
+### Getting system configs
 
-We use ` git secret` and encrypt our configuration files using gpg keys. To get access the config files and decrypt them,
+We use ` git secret` and encrypt our settings files using gpg keys. To get access the config files and decrypt them,
 setup [git secret](https://git-secret.io/). Once complete, reach out to [Philip Wafula](philipwafula2@gmailcom)
 and request to have your public gpg key added to the public keys set in the `.gitsecret` file.
 
@@ -29,7 +29,7 @@ Once your credentials have been added to the key ring, decrypt the config files:
 git secret reveal
 ```
 
-Succeeding a successful decryption of the config files, change the configurations to match your local environment 
+Succeeding a successful decryption of the config files, change the settings to match your local environment 
 set up:
 
 ```
@@ -44,17 +44,32 @@ To get your dev environment setup locally:
 
 
 ```shell script
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 ```
 
-Run `setup.sh` to install all requirements, with the command:
+Run `install_requirements.sh` to install all requirements, with the command:
 
 ```shell script
-source setup.sh
+cd devtools/
+source install_requirements.sh
 ```
-This script also exports the application's parent folder to $PYTHONPATH to ensure the import system recognizes the packages
-in the application.
+To get a fully functional instance of the application set up, run the `setup_development_environment.sh` script:
+
+```shell script
+source setup_development_environment.sh
+```
+The script provides an interactive interface to add your db postgres user and password. It then drops and rebuilds the database
+and seeds system data.
+
+#### Exporting app path to python path
+This script also exports the application's parent folder to `$PYTHONPATH ` to ensure the import system recognizes the packages
+in the application. In the event that you run into an error regarding the app module not being detected on the python path,
+run the `quick_env.sh`
+
+```shell script
+source quick_env.sh
+```
 
 ### Database
 First, setup your postgres database `flask_server_side_development`, using the username and password from the local config file.
@@ -63,7 +78,7 @@ Next, to update your database to the latest migration file:
 
 ```shell script
 cd app
-python manage.py db upgrade
+python3 manage.py db upgrade
 ```
 
 To create a new migration:
@@ -71,7 +86,7 @@ To create a new migration:
 Make the modifications to the model file to reflect the database changes.
 
 ```shell script
-python manage.py db migrate
+python3 manage.py db migrate
 ```
 
 Remember to commit the file!
@@ -79,7 +94,7 @@ Remember to commit the file!
 Sometimes, branches split and you will have multiple heads:
 
 ```shell script
-python manage.py db merge heads
+python3 manage.py db merge heads
 ```
 
 ### Testing
@@ -87,8 +102,7 @@ To conduct some gorilla tests on the API, import the provided `test_apis_postman
 application and run the tests from there.
 
 ### Background tasks
-To run background tasks such as sending actual emails and other background tasks, to run celery you're in the
-root directory then run:
+To run background tasks such as sending actual emails, ensure you're in the root directory then run:
 
 ```shell script
 celery worker -A worker.tasks --loglevel=info
