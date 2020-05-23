@@ -4,7 +4,7 @@ from app.server.utils.schemas import BaseSchema
 
 
 class UserSchema(BaseSchema):
-    given_name = fields.Str()
+    given_names = fields.Str()
     surname = fields.Str()
     identification = fields.Method('get_identification_data')
     role = fields.Method('get_role_data')

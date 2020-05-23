@@ -73,7 +73,7 @@ class User(BaseModel):
         """
         # check if id type is in identification types
         if id_type not in IDENTIFICATION_TYPES:
-            raise IdentificationTypeNotFoundException('Identification type {} not valid'.format(id_type))
+            raise IdentificationTypeNotFoundException(f'Identification type {id_type} not valid')
 
         # check that id value is supplied
         if id_value is None:
@@ -144,7 +144,7 @@ class User(BaseModel):
             return exception
 
     @staticmethod
-    def decode_auth_token(token, token_type='Auth'):
+    def decode_auth_token(token, token_type='authentication'):
         """
         Validates the auth token
         :param token_type: defined token type.
@@ -160,9 +160,9 @@ class User(BaseModel):
             else:
                 return payload
         except jwt.ExpiredSignatureError:
-            return '{} Token Signature expired.'.format(token_type)
+            return f'{token_type} Token Signature expired.'
         except jwt.InvalidTokenError:
-            return 'Invalid {} Token.'.format(token_type)
+            return f'Invalid {token_type} Token.'
 
     def encode_single_use_jws(self, token_type):
         """
@@ -171,7 +171,11 @@ class User(BaseModel):
         """
         signature = TimedJSONWebSignatureSerializer(config.SECRET_KEY,
                                                     expires_in=(60 * 60 * 24))
-        return signature.dumps({'id': self.id, 'type': token_type}).decode("utf-8")
+        return signature.dumps(
+            {
+                'id': self.id,
+                'type': token_type
+            }).decode("utf-8")
 
     @classmethod
     def decode_single_use_jws(cls, token, required_token_type):
@@ -196,29 +200,49 @@ class User(BaseModel):
 
             # check if token type is equivalent
             if token_type != required_token_type:
-                return {'status': 'Fail', 'message': 'Wrong token type (needed {})'.format(required_token_type)}
+                return {
+                    'status': 'Fail',
+                    'message': f'Wrong token type (needed {required_token_type})'
+                }
 
             # check if user_id is present
             if not user_id:
-                return {'status': 'Fail', 'message': 'No User ID provided.'}
+                return {
+                    'status': 'Fail',
+                    'message': 'No User ID provided.'
+                }
 
             # check if user exists in DB
-            user = cls.query.filter_by(
-                id=user_id).execution_options(show_all=True).first()
+            user = cls.query.filter_by(id=user_id).execution_options(show_all=True).first()
 
             # if user is not found
             if not user:
-                return {'status': 'Fail', 'message': 'User not found.'}
-            return {'status': 'Success', 'user': user}
+                return {
+                    'status': 'Fail',
+                    'message': 'User not found.'
+                }
+            return {
+                'status': 'Success',
+                'user': user
+            }
 
         except BadSignature:
-            return {'status': 'Fail', 'message': 'Token signature not valid.'}
+            return {
+                'status': 'Fail',
+                'message': 'Token signature not valid.'
+            }
 
         except SignatureExpired:
-            return {'status': 'Fail', 'message': 'Token has expired.'}
+            return {
+                'status': 'Fail',
+                'message': 'Token has expired.'
+            }
 
         except Exception as exception:
-            return {'status': 'Fail', 'message': exception}
+            return {
+                'status': 'Fail',
+                'message': exception
+            }
 
     def clear_invalid_password_reset_tokens(self):
         if self.password_reset_tokens is None:
@@ -228,7 +252,7 @@ class User(BaseModel):
         for token in self.password_reset_tokens:
             decoded_token_response = self.decode_single_use_jws(token=token,
                                                                 required_token_type='password_reset')
-            is_valid_token = decoded_token_response['status'] == 'Success'
+            is_valid_token = decoded_token_response.get('status') == 'Success'
             if is_valid_token:
                 valid_tokens.append(token)
         return valid_tokens

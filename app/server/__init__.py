@@ -45,7 +45,7 @@ def register_blueprints(application):
     url_version = '/api/v1'
     from app.server.api.auth import auth_blueprint
     from app.server.api.organization import organization_blueprint
-    from app.server.api.users import user_blueprint
+    from app.server.api.user import user_blueprint
     application.register_blueprint(auth_blueprint, url_prefix=url_version)
     application.register_blueprint(organization_blueprint, url_prefix=url_version)
     application.register_blueprint(user_blueprint, url_prefix=url_version)
@@ -85,7 +85,9 @@ def fernet_decrypt(token):
 
 
 # define db
-db = SQLAlchemy()
+db = SQLAlchemy(session_options={
+    'expire_on_commit': not config.IS_TEST
+})
 
 # africa's talking sms client
 africastalking.initialize(username=config.AFRICASTALKING_USERNAME,

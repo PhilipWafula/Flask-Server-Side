@@ -41,6 +41,7 @@ class ActivateUserAPI(MethodView):
     """
     Activate users
     """
+
     def post(self):
         activate_user_data = request.get_json()
 
@@ -53,16 +54,16 @@ class ActivateUserAPI(MethodView):
                     'status': 'Fail'
                 }
             }
-            return make_response(jsonify(response), 400)
+            return make_response(jsonify(response), 401)
 
         decoded_token_response = User.decode_single_use_jws(token=activation_token,
                                                             required_token_type='user_activation')
 
-        is_valid_token = decoded_token_response['status'] == 'Success'
+        is_valid_token = decoded_token_response.get('status') == 'Success'
         if not is_valid_token:
             response = {
                 'error': {
-                    'message': decoded_token_response['message'],
+                    'message': decoded_token_response.get('message'),
                     'status': 'Fail'
                 }
             }
@@ -86,47 +87,13 @@ class ActivateUserAPI(MethodView):
 
         response = {
             'authentication_token': authentication_token.decode(),
-            'data': {'user': user_schema.dump(user).data},
+            'data': {
+                'user': user_schema.dump(user).data
+            },
             'message': 'User successfully activated.',
             'status': 'Success'
         }
         return make_response(jsonify(response), 200)
-
-
-class ResendOneTimePasswordAPI(MethodView):
-    """
-    Request OTP to be resent
-    """
-    def post(self):
-        resend_otp_data = request.get_json()
-        phone = resend_otp_data.get('phone')
-        user = User.query.filter_by(phone=phone).first()
-        otp_secret = user.get_otp_secret()
-
-        # check if use is always activated
-        if user.is_activated:
-            response = {
-                'error': {
-                    'message': 'User is already activated, please log in.',
-                    'status': 'Fail'
-                }
-            }
-            return make_response(jsonify(response), 400)
-
-        # get old OTP
-        old_otp = pyotp.TOTP(otp_secret, interval=3600).now()
-
-        # check if old OTP is expired
-        is_valid_otp = user.verify_otp(one_time_password=old_otp, expiry_interval=3600)
-        if is_valid_otp:
-            message = "Hello {}, your activation code is: {}".format(user.given_names, old_otp)
-            send_sms(message=message, phone_number=phone)
-        else:
-            # generate new OTP
-            send_one_time_pin(user, user.phone)
-
-        response, status_code = otp_resent_successfully()
-        return make_response(jsonify(response), status_code)
 
 
 class VerifyOneTimePasswordAPI(MethodView):
@@ -174,7 +141,9 @@ class VerifyOneTimePasswordAPI(MethodView):
 
                 response = {
                     'authentication_token': authentication_token.decode('utf-8'),
-                    'data': {'user': user_schema.dump(user).data},
+                    'data': {
+                        'user': user_schema.dump(user).data
+                    },
                     'message': 'User successfully activated.',
                     'status': 'Success'
                 }
@@ -195,6 +164,43 @@ class VerifyOneTimePasswordAPI(MethodView):
             }
         }
         return make_response(jsonify(response), 400)
+
+
+class ResendOneTimePasswordAPI(MethodView):
+    """
+    Request OTP to be resent
+    """
+
+    def post(self):
+        resend_otp_data = request.get_json()
+        phone = resend_otp_data.get('phone')
+        user = User.query.filter_by(phone=phone).first()
+        otp_secret = user.get_otp_secret()
+
+        # check if use is always activated
+        if user.is_activated:
+            response = {
+                'error': {
+                    'message': 'User is already activated, please log in.',
+                    'status': 'Fail'
+                }
+            }
+            return make_response(jsonify(response), 400)
+
+        # get old OTP
+        old_otp = pyotp.TOTP(otp_secret, interval=3600).now()
+
+        # check if old OTP is expired
+        is_valid_otp = user.verify_otp(one_time_password=old_otp, expiry_interval=3600)
+        if is_valid_otp:
+            message = f'Hello {user.given_names}, your activation code is: {old_otp}'
+            send_sms(message=message, phone_number=phone)
+        else:
+            # generate new OTP
+            send_one_time_pin(user)
+
+        response, status_code = otp_resent_successfully()
+        return make_response(jsonify(response), status_code)
 
 
 class LoginAPI(MethodView):
@@ -249,7 +255,9 @@ class LoginAPI(MethodView):
 
             response = {
                 'authentication_token': auth_token.decode(),
-                'data': {'user': user_schema.dump(user).data},
+                'data': {
+                    'user': user_schema.dump(user).data
+                },
                 'message': 'Successfully logged in.',
                 'status': 'Success'
             }
@@ -313,7 +321,7 @@ class LogoutAPI(MethodView):
                 except Exception as exception:
                     response = {
                         'error': {
-                            'message': 'System error: {}.'.format(exception),
+                            'message': f'System error: {exception}.',
                             'status': 'Fail'
                         }
                     }
@@ -361,7 +369,7 @@ class RequestPasswordResetEmailAPI(MethodView):
             }
             return make_response(jsonify(response), 403)
 
-        password_reset_token = user.encode_single_use_jws(token_type='password_reset')
+        password_reset_token = user.encode_single_use_jws(token_type='reset_password')
         organization = user.parent_organization
         given_names = user.given_names
 
@@ -375,9 +383,10 @@ class RequestPasswordResetEmailAPI(MethodView):
         db.session.commit()
 
         mailer = Mailer(organization=organization)
-        mailer.send_reset_password_email(email=email,
-                                         given_names=given_names,
-                                         password_reset_token=password_reset_token)
+        mailer.send_template_email(mail_type='reset_password',
+                                   email=email,
+                                   given_names=given_names,
+                                   token=password_reset_token)
 
         response = {
             'message': 'A password reset email has been sent, please check your email for instructions.',
@@ -405,7 +414,7 @@ class ResetPasswordAPI(MethodView):
             return response, 422
 
         decoded_token_response = User.decode_single_use_jws(token=password_reset_token,
-                                                            required_token_type='password_reset')
+                                                            required_token_type='reset_password')
 
         is_valid_token = decoded_token_response['status'] == 'Success'
         if not is_valid_token:

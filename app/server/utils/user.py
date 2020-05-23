@@ -1,5 +1,6 @@
 from jsonschema.exceptions import ValidationError
 from phonenumbers import NumberParseException
+from typing import Optional
 
 from app.server import db
 from app.server.constants import SUPPORTED_ROLES
@@ -20,6 +21,33 @@ def get_organization(public_identifier: str):
         organization = Organization.query.filter_by(public_identifier=public_identifier).first()
         return organization
     raise ValueError('No organization matching public identifier was found.')
+
+
+def get_user_from_unique_attribute(email: Optional[str] = None,
+                                   user_id: Optional[int] = None,
+                                   phone: Optional[str] = None):
+    user = None
+    if email:
+        user = User.query.filter_by(email=email).first()
+
+    if user_id:
+        user = User.query.get(user_id)
+
+    if phone:
+        user = User.query.filter_by(phone=phone).first()
+    return user
+
+
+def get_user_role_from_auth_token(token: str):
+    decoded_user_data = User.decode_auth_token(token)
+    if not isinstance(decoded_user_data, str):
+        user = User.query.filter_by(id=decoded_user_data.get('id')).execution_options(show_all=True).first()
+        if not user:
+            raise Exception('No user found.')
+        else:
+            return user.role.name
+    else:
+        raise Exception(decoded_user_data)
 
 
 def create_user(given_names=None,
@@ -138,6 +166,7 @@ def process_create_or_update_user_request(user_attributes,
     signup_method = user_attributes.get('signup_method')
     public_identifier = user_attributes.get('public_identifier')
     role = user_attributes.get('role')
+    user_id = user_attributes.get('user_id')
 
     # verify request
     try:
@@ -154,7 +183,7 @@ def process_create_or_update_user_request(user_attributes,
         response = {
             'error': {
                 'message': 'User cannot be created without a parent organization.'
-                           'No organization found for public identifier: {}.'.format(public_identifier),
+                           f'No organization found for public identifier: {public_identifier}.',
                 'status': 'Fail'
             }
         }
@@ -217,14 +246,14 @@ def process_create_or_update_user_request(user_attributes,
             response = {
                 'error':
                     {
-                        'message': 'Invalid phone number. ERROR: {}'.format(exception),
+                        'message': f'Invalid phone number. ERROR: {exception}',
                         'status': 'Fail'
                     }
             }
             return response, 422
 
         # check if user is already existent
-        existing_user = User.query.filter_by(phone=phone).first()
+        existing_user = get_user_from_unique_attribute(email=email, user_id=user_id, phone=phone)
 
         # check if request is an update request
         if existing_user and not user_update_allowed:
@@ -246,8 +275,6 @@ def process_create_or_update_user_request(user_attributes,
                                    address=address,
                                    date_of_birth=date_of_birth)
 
-                db.session.commit()
-
                 response = {
                     'data': {
                         'user': user_schema.dump(user).data
@@ -261,7 +288,7 @@ def process_create_or_update_user_request(user_attributes,
             except Exception as exception:
                 response = {
                     'error': {
-                        'message': '{}'.format(exception),
+                        'message': f'{exception}',
                         'status': 'Fail'
                     }
                 }
@@ -279,11 +306,11 @@ def process_create_or_update_user_request(user_attributes,
                            id_value=id_value,
                            role=role,
                            signup_method=signup_method)
-        db.session.commit()
+        db.session.flush()
 
         # send user OTP to validate user's phone number
         if signup_method == SignupMethod.MOBILE_SIGNUP:
-            send_one_time_pin(user=user, phone_number=phone)
+            send_one_time_pin(user=user)
             response = {
                 'message': 'User created. Please verify phone number.',
                 'status': 'Success'
@@ -299,9 +326,10 @@ def process_create_or_update_user_request(user_attributes,
 
             mailer = Mailer(organization)
             activation_token = user.encode_single_use_jws(token_type='user_activation')
-            mailer.send_user_activation_email(activation_token=activation_token,
-                                              email=user.email,
-                                              given_names=user.given_names)
+            mailer.send_template_email(mail_type='user_activation',
+                                       token=activation_token,
+                                       email=user.email,
+                                       given_names=user.given_names)
 
             response = {
                 'message': 'User created. Please check your email to verify your account.',

@@ -12,11 +12,11 @@ def drop_and_rebuild_sql():
     working_database = config.DATABASE_NAME
 
     # drop working database
-    print('Dropping database: {}'.format(working_database))
+    print(f'Dropping database: {working_database}')
     db.drop_all()
 
     # recreate working database
-    print('Creating database: {}'.format(working_database))
+    print(f'Creating database: {working_database}')
     db.create_all()
 
     context.pop()

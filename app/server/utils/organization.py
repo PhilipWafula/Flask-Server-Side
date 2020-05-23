@@ -1,6 +1,3 @@
-from typing import Dict
-from typing import Optional
-
 from jsonschema import ValidationError
 
 from app.server import db
@@ -24,8 +21,6 @@ def create_organization(address=None,
     organization = Organization(address=address,
                                 name=name,
                                 is_master=is_master)
-    # create public identifier
-    organization.set_public_identifier()
 
     db.session.add(organization)
 
@@ -74,7 +69,7 @@ def process_create_or_update_organization_request(organization_attributes,
 
     if organization_id:
         # check if organization exists
-        existing_organization = Organization.query.get(id=organization_id)
+        existing_organization = Organization.query.get(organization_id)
 
     if existing_organization and update_organization_allowed:
         try:
@@ -82,9 +77,10 @@ def process_create_or_update_organization_request(organization_attributes,
                                                address=address,
                                                name=name)
 
-            db.session.commit()
             response = {
-                'data': organization_schema.dump(organization).data,
+                'data': {
+                    'organization': organization_schema.dump(organization).data
+                },
                 'message': 'Successfully updated organization.',
                 'status': 'Success'
             }
@@ -92,7 +88,7 @@ def process_create_or_update_organization_request(organization_attributes,
         except Exception as exception:
             response = {
                 'error': {
-                    'message': '{}'.format(exception),
+                    'message': f'{exception}',
                     'status': 'Fail'}
             }
             return response, 400
@@ -101,8 +97,11 @@ def process_create_or_update_organization_request(organization_attributes,
                                        address=address,
                                        is_master=is_master)
 
-    response = {'data': organization_schema.dump(organization).data,
-                'message': 'Successfully created organization.',
-                'status': 'Success'}
+    response = {
+        'data': {
+            'organization': organization_schema.dump(organization).data
+        },
+        'message': 'Successfully created organization.',
+        'status': 'Success'}
 
     return response, 200

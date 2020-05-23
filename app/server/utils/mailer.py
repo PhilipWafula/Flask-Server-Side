@@ -86,19 +86,20 @@ def _get_mail_body(action: str,
     return mail_body
 
 
-def _mail_handler(email_recipients: list,
-                  mail_sender: str,
-                  subject: str,
-                  text_body,
-                  html_body=None):
+def mail_handler(email_recipients: list,
+                 mail_sender: str,
+                 subject: str,
+                 text_body,
+                 html_body=None):
     context_env = ContextEnvironment(current_app)
     if context_env.is_development or context_env.is_testing:
         recipients_logging_format = ', '.join(email_recipients)
         app_logger.info(
             "IS NOT PRODUCTION NOT ACTUALLY SENDING:\n"
-            "From: {}\n"
-            "To: {}\n"
-            "{}".format(mail_sender, recipients_logging_format, text_body)
+            f"From: {mail_sender}\n"
+            f"To: {recipients_logging_format}\n"
+            f"Subject: {subject}\n"
+            f"{text_body}"
         )
 
     else:
@@ -114,14 +115,18 @@ class Mailer:
         self.organization_address = organization.address
         self.organization_domain = config.APP_DOMAIN
 
-    def send_user_activation_email(self,
-                                   activation_token: str,
-                                   email: str,
-                                   given_names: str):
-        action_tag, mail_message = self.mail_message.activate_user_mail_message()
-        action_url = self.organization_domain + '/login?activation_token={}'.format(activation_token)
+    def send_template_email(self, mail_type: str, email: str, given_names: str, token: str):
+        if mail_type == 'user_activation':
+            action_url = self.organization_domain + f'/login?activation_token={token}'
+            action_tag, mail_message = self.mail_message.activate_user_mail_message()
+        elif mail_type == 'reset_password':
+            action_url = self.organization_domain + f'/reset-password?token={token}'
+            action_tag, mail_message = self.mail_message.reset_user_password_mail_message()
+        else:
+            raise Exception('Unsupported mail type.')
+
         copyright_year = datetime.now().year
-        action = action_tag.strip('{}: '.format(self.organization_name))
+        action = action_tag.strip(f'{self.organization_name}')
 
         html_body = _get_mail_body(action=action,
                                    action_tag=action_tag,
@@ -143,43 +148,8 @@ class Mailer:
                                    organization_address=self.organization_address,
                                    organization_name=self.organization_name)
 
-        _mail_handler(email_recipients=[email],
-                      html_body=html_body,
-                      mail_sender=self.mail_sender,
-                      subject=action_tag,
-                      text_body=text_body)
-
-    def send_reset_password_email(self,
-                                  email: str,
-                                  given_names: str,
-                                  password_reset_token: str, ):
-        action_tag, mail_message = self.mail_message.reset_user_password_mail_message()
-        action_url = self.organization_domain + '/reset-password?token={}'.format(password_reset_token)
-        copyright_year = datetime.now().year
-        action = action_tag.strip('{}: '.format(self.organization_name))
-
-        html_body = _get_mail_body(action=action,
-                                   action_tag=action_tag,
-                                   action_url=action_url,
-                                   copyright_year=copyright_year,
-                                   file_name='action_email.html',
-                                   given_names=given_names,
-                                   mail_message=mail_message,
-                                   organization_address=self.organization_address,
-                                   organization_name=self.organization_name)
-
-        text_body = _get_mail_body(action=action,
-                                   action_tag=action_tag,
-                                   action_url=action_url,
-                                   copyright_year=copyright_year,
-                                   file_name='action_email.txt',
-                                   given_names=given_names,
-                                   mail_message=mail_message,
-                                   organization_address=self.organization_address,
-                                   organization_name=self.organization_name)
-
-        _mail_handler(email_recipients=[email],
-                      html_body=html_body,
-                      mail_sender=self.mail_sender,
-                      subject=action_tag,
-                      text_body=text_body)
+        mail_handler(email_recipients=[email],
+                     html_body=html_body,
+                     mail_sender=self.mail_sender,
+                     subject=action_tag,
+                     text_body=text_body)

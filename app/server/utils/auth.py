@@ -37,7 +37,7 @@ def requires_auth(function=None,
 
             if not isinstance(decoded_user_data, str):
 
-                user = User.query.filter_by(id=decoded_user_data['id']).execution_options(show_all=True).first()
+                user = User.query.filter_by(id=decoded_user_data.get('id')).execution_options(show_all=True).first()
 
                 if not user:
                     response = {

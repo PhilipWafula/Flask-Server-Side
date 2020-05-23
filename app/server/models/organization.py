@@ -23,7 +23,9 @@ class Organization(BaseModel):
     def master_organisation() -> "Organization":
         return Organization.query.filter_by(is_master=True).first()
 
-    def set_public_identifier(self):
+    def __init__(self, public_identifier=None, **kwargs):
+        super(Organization, self).__init__(**kwargs)
         components = string.ascii_letters + string.digits
         identifier = ''.join(random.choice(components) for i in range(8))
-        self.public_identifier = identifier
+        self.public_identifier = public_identifier or identifier
+

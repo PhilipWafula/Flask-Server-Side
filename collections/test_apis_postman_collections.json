@@ -151,7 +151,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"msisdn\": \"+254712345678\",\n\t\"otp\": \"571613\",\n\t\"otp_expiry_interval\": 3600\n\t\n}",
+							"raw": "{\n\t\"phone\": \"+254712345678\",\n\t\"otp\": \"571613\",\n\t\"otp_expiry_interval\": 3600\n\t\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -249,7 +249,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"msisdn\": \"+254712345678\",\n\t\"password\": \"password-123\"\n}",
+					"raw": "{\n\t\"phone\": \"+254712345678\",\n\t\"password\": \"password-123\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"

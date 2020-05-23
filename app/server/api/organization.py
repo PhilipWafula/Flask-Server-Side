@@ -46,7 +46,9 @@ class OrganizationAPI(MethodView):
                 return make_response(jsonify(response), status_code)
 
             response = {
-                'data': {'organization': organization_schema.dump(organization).data},
+                'data': {
+                    'organization': organization_schema.dump(organization).data
+                },
                 'message': 'Successfully loaded organization data.',
                 'status': 'Success'}
             return make_response(jsonify(response), 200)
@@ -66,7 +68,9 @@ class OrganizationAPI(MethodView):
                 return make_response(jsonify(response), 404)
 
             response = {
-                'data': {'organizations': organizations_schema.dump(organizations).data},
+                'data': {
+                    'organizations': organizations_schema.dump(organizations).data
+                },
                 'items': total_items,
                 'message': 'Successfully loaded all organizations.',
                 'pages': total_pages,
@@ -101,14 +105,14 @@ single_organization_view = OrganizationAPI.as_view('single_organization_view')
 
 organization_blueprint.add_url_rule('/organization/',
                                     view_func=organization_view,
-                                    methods=['POST', ])
+                                    methods=['POST'])
 
 organization_blueprint.add_url_rule('/organization/',
                                     view_func=organization_view,
-                                    methods=['GET', ],
+                                    methods=['GET'],
                                     defaults={'organization_id': None})
 
 organization_blueprint.add_url_rule('/organization/<int:organization_id>/',
                                     view_func=single_organization_view,
-                                    methods=['GET', 'PUT', ])
+                                    methods=['GET', 'PUT'])
 

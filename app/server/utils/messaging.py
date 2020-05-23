@@ -10,17 +10,18 @@ def send_sms(message: str, phone_number: str):
     context_env = ContextEnvironment(current_app)
     if context_env.is_development or context_env.is_testing:
         app_logger.info(
-            "IS NOT PRODUCTION NOT ACTUALLY SENDING:\n"
-            "Recipient: {}\n"
-            "Message: {}".format(phone_number, message))
+            'IS NOT PRODUCTION NOT ACTUALLY SENDING:\n'
+            f'Recipient: {phone_number}\n'
+            f'Message: {message}')
     else:
+        # TODO: [Philip] Make SMS asynchronous
         response = sms.send(message=message,
                             recipients=[phone_number])
 
         return response
 
 
-def send_one_time_pin(user: User, phone_number: str):
+def send_one_time_pin(user: User):
     otp = user.set_otp_secret()
-    message = "Hello {}, your activation code is: {}".format(user.given_names, otp)
-    send_sms(message=message, phone_number=phone_number)
+    message = f'Hello {user.given_names}, your activation code is: {otp}'
+    send_sms(message=message, phone_number=user.phone)
