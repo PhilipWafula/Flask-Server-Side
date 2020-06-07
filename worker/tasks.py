@@ -8,10 +8,7 @@ task_logger = get_task_logger(__name__)
 
 
 @celery.task
-def send_email(mail_sender: str,
-               email_recipients: list,
-               subject: str,
-               html_body=None):
+def send_email(mail_sender: str, email_recipients: list, subject: str, html_body=None):
     """
 
     :param email_recipients: a list of email address that will receive an email.
@@ -22,13 +19,13 @@ def send_email(mail_sender: str,
     """
 
     if not mail_sender:
-        raise ValueError('Mail sender cannot be empty')
+        raise ValueError("Mail sender cannot be empty")
 
     try:
         # build mail message
-        message = Message(subject=subject,
-                          recipients=email_recipients,
-                          sender=mail_sender)
+        message = Message(
+            subject=subject, recipients=email_recipients, sender=mail_sender
+        )
 
         # get html body if present
         message.html = html_body
@@ -36,4 +33,4 @@ def send_email(mail_sender: str,
         mailer.send(message)
 
     except Exception as exception:
-        task_logger.error('An error occurred: {}'.format(exception))
+        task_logger.error("An error occurred: {}".format(exception))

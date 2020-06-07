@@ -18,7 +18,10 @@ from app.server import db
 from app.server import fernet_decrypt
 from app.server import fernet_encrypt
 from app.server.constants import IDENTIFICATION_TYPES, SUPPORTED_ROLES
-from app.server.exceptions import IdentificationTypeNotFoundException, RoleNotFoundException
+from app.server.exceptions import (
+    IdentificationTypeNotFoundException,
+    RoleNotFoundException,
+)
 from app.server.models.blacklisted_token import BlacklistedToken
 from app.server.models.organization import Organization
 from app.server.models.role import Role
@@ -31,7 +34,8 @@ class User(BaseModel):
     """
     Creates user object
     """
-    __tablename__ = 'users'
+
+    __tablename__ = "users"
 
     given_names = db.Column(db.String(length=35), nullable=False)
     surname = db.Column(db.String(length=35), nullable=False)
@@ -52,13 +56,15 @@ class User(BaseModel):
 
     password_reset_tokens = db.Column(MutableList.as_mutable(ARRAY(db.String)))
 
-    parent_organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'))
-    parent_organization = db.relationship('Organization',
-                                          primaryjoin=Organization.id == parent_organization_id,
-                                          lazy=True,
-                                          uselist=False)
+    parent_organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"))
+    parent_organization = db.relationship(
+        "Organization",
+        primaryjoin=Organization.id == parent_organization_id,
+        lazy=True,
+        uselist=False,
+    )
 
-    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
+    role_id = db.Column(db.Integer, db.ForeignKey("roles.id"))
     role = db.relationship("Role", back_populates="users")
 
     @hybrid_property
@@ -73,11 +79,13 @@ class User(BaseModel):
         """
         # check if id type is in identification types
         if id_type not in IDENTIFICATION_TYPES:
-            raise IdentificationTypeNotFoundException(f'Identification type {id_type} not valid')
+            raise IdentificationTypeNotFoundException(
+                f"Identification type {id_type} not valid"
+            )
 
         # check that id value is supplied
         if id_value is None:
-            raise ValueError('ID cannot be empty')
+            raise ValueError("ID cannot be empty")
 
         # corrective method in case identification is set to none
         if self._identification is None:
@@ -85,7 +93,7 @@ class User(BaseModel):
 
         # set values
         self._identification[id_type] = id_value
-        flag_modified(self, '_identification')
+        flag_modified(self, "_identification")
 
     @staticmethod
     def salt_hash_secret(password: str):
@@ -94,7 +102,9 @@ class User(BaseModel):
         :return: encrypted password with system password pepper.
         """
         fernet_key = Fernet(config.PASSWORD_PEPPER)
-        return fernet_key.encrypt(bcrypt.hashpw(password.encode(), bcrypt.gensalt())).decode()
+        return fernet_key.encrypt(
+            bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+        ).decode()
 
     @staticmethod
     def check_salt_hashed_secret(password, hashed_password):
@@ -129,22 +139,18 @@ class User(BaseModel):
         try:
 
             payload = {
-                'exp': datetime.utcnow() + timedelta(days=7, seconds=0),
-                'iat': datetime.utcnow(),
-                'id': self.id,
-                'role': self.role.name
+                "exp": datetime.utcnow() + timedelta(days=7, seconds=0),
+                "iat": datetime.utcnow(),
+                "id": self.id,
+                "role": self.role.name,
             }
 
-            return jwt.encode(
-                payload,
-                config.SECRET_KEY,
-                algorithm='HS256'
-            )
+            return jwt.encode(payload, config.SECRET_KEY, algorithm="HS256")
         except Exception as exception:
             return exception
 
     @staticmethod
-    def decode_auth_token(token, token_type='authentication'):
+    def decode_auth_token(token, token_type="authentication"):
         """
         Validates the auth token
         :param token_type: defined token type.
@@ -152,30 +158,27 @@ class User(BaseModel):
         :return: integer|string
         """
         try:
-            payload = jwt.decode(jwt=token, key=config.SECRET_KEY, algorithms='HS256')
+            payload = jwt.decode(jwt=token, key=config.SECRET_KEY, algorithms="HS256")
             is_blacklisted_token = BlacklistedToken.check_if_blacklisted(token=token)
 
             if is_blacklisted_token:
-                return 'Token is blacklisted. Please log in again.'
+                return "Token is blacklisted. Please log in again."
             else:
                 return payload
         except jwt.ExpiredSignatureError:
-            return f'{token_type} Token Signature expired.'
+            return f"{token_type} Token Signature expired."
         except jwt.InvalidTokenError:
-            return f'Invalid {token_type} Token.'
+            return f"Invalid {token_type} Token."
 
     def encode_single_use_jws(self, token_type):
         """
         :param token_type: token type to sign.
         :return: JSON Web Signature.
         """
-        signature = TimedJSONWebSignatureSerializer(config.SECRET_KEY,
-                                                    expires_in=(60 * 60 * 24))
-        return signature.dumps(
-            {
-                'id': self.id,
-                'type': token_type
-            }).decode("utf-8")
+        signature = TimedJSONWebSignatureSerializer(
+            config.SECRET_KEY, expires_in=(60 * 60 * 24)
+        )
+        return signature.dumps({"id": self.id, "type": token_type}).decode("utf-8")
 
     @classmethod
     def decode_single_use_jws(cls, token, required_token_type):
@@ -186,63 +189,46 @@ class User(BaseModel):
         """
         try:
             # define signature with application
-            signature = TimedJSONWebSignatureSerializer(
-                config.SECRET_KEY)
+            signature = TimedJSONWebSignatureSerializer(config.SECRET_KEY)
 
             # get data from signature
             data = signature.loads(token.encode("utf-8"))
 
             # get user_id
-            user_id = data.get('id')
+            user_id = data.get("id")
 
             # get token type
-            token_type = data.get('type')
+            token_type = data.get("type")
 
             # check if token type is equivalent
             if token_type != required_token_type:
                 return {
-                    'status': 'Fail',
-                    'message': f'Wrong token type (needed {required_token_type})'
+                    "status": "Fail",
+                    "message": f"Wrong token type (needed {required_token_type})",
                 }
 
             # check if user_id is present
             if not user_id:
-                return {
-                    'status': 'Fail',
-                    'message': 'No User ID provided.'
-                }
+                return {"status": "Fail", "message": "No User ID provided."}
 
             # check if user exists in DB
-            user = cls.query.filter_by(id=user_id).execution_options(show_all=True).first()
+            user = (
+                cls.query.filter_by(id=user_id).execution_options(show_all=True).first()
+            )
 
             # if user is not found
             if not user:
-                return {
-                    'status': 'Fail',
-                    'message': 'User not found.'
-                }
-            return {
-                'status': 'Success',
-                'user': user
-            }
+                return {"status": "Fail", "message": "User not found."}
+            return {"status": "Success", "user": user}
 
         except BadSignature:
-            return {
-                'status': 'Fail',
-                'message': 'Token signature not valid.'
-            }
+            return {"status": "Fail", "message": "Token signature not valid."}
 
         except SignatureExpired:
-            return {
-                'status': 'Fail',
-                'message': 'Token has expired.'
-            }
+            return {"status": "Fail", "message": "Token has expired."}
 
         except Exception as exception:
-            return {
-                'status': 'Fail',
-                'message': exception
-            }
+            return {"status": "Fail", "message": exception}
 
     def clear_invalid_password_reset_tokens(self):
         if self.password_reset_tokens is None:
@@ -250,9 +236,10 @@ class User(BaseModel):
 
         valid_tokens = []
         for token in self.password_reset_tokens:
-            decoded_token_response = self.decode_single_use_jws(token=token,
-                                                                required_token_type='password_reset')
-            is_valid_token = decoded_token_response.get('status') == 'Success'
+            decoded_token_response = self.decode_single_use_jws(
+                token=token, required_token_type="password_reset"
+            )
+            is_valid_token = decoded_token_response.get("status") == "Success"
             if is_valid_token:
                 valid_tokens.append(token)
         return valid_tokens
@@ -278,7 +265,7 @@ class User(BaseModel):
         token = fernet_encrypt(otp_secret)
 
         # save otp secret
-        self._otp_secret = token.decode('utf-8')
+        self._otp_secret = token.decode("utf-8")
 
         # generate one time password [expires in 1 hour]
         one_time_password = pyotp.TOTP(otp_secret, interval=3600).now()
@@ -286,14 +273,16 @@ class User(BaseModel):
         return one_time_password
 
     def get_otp_secret(self):
-        return fernet_decrypt(self._otp_secret.encode('utf-8'))
+        return fernet_decrypt(self._otp_secret.encode("utf-8"))
 
     def verify_otp(self, one_time_password, expiry_interval):
         # get secret used to create one time password
         otp_secret = self.get_otp_secret()
 
         # verify one time password validity
-        is_valid = pyotp.TOTP(otp_secret, interval=expiry_interval).verify(one_time_password)
+        is_valid = pyotp.TOTP(otp_secret, interval=expiry_interval).verify(
+            one_time_password
+        )
 
         return is_valid
 
@@ -307,15 +296,15 @@ class User(BaseModel):
     # method responsible for returning user details that make it easier to identify a user.
     def user_details(self):
         if self.given_names and self.surname:
-            return f'{self.given_names} {self.surname} {self.phone}'
-        return f'{self.phone}'
+            return f"{self.given_names} {self.surname} {self.phone}"
+        return f"{self.phone}"
 
     def set_role(self, role: str):
         # check that role is supported in system constants
         if role not in SUPPORTED_ROLES:
-            raise RoleNotFoundException('The provided role is not supported')
+            raise RoleNotFoundException("The provided role is not supported")
         user_role = Role.query.filter_by(name=role).first()
         self.role_id = user_role.id
 
     def __repr__(self):
-        return 'User %r' % self.phone
+        return "User %r" % self.phone

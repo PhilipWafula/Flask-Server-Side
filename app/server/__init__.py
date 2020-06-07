@@ -24,7 +24,7 @@ def boilerplate_app():
     app.config.from_object(config)
 
     # define base directory
-    app.config['BASEDIR'] = os.path.abspath(os.path.dirname(__file__))
+    app.config["BASEDIR"] = os.path.abspath(os.path.dirname(__file__))
 
     # register extensions
     register_extensions(app)
@@ -42,10 +42,11 @@ def create_app():
 
 
 def register_blueprints(application):
-    url_version = '/api/v1'
+    url_version = "/api/v1"
     from app.server.api.auth import auth_blueprint
     from app.server.api.organization import organization_blueprint
     from app.server.api.user import user_blueprint
+
     application.register_blueprint(auth_blueprint, url_prefix=url_version)
     application.register_blueprint(organization_blueprint, url_prefix=url_version)
     application.register_blueprint(user_blueprint, url_prefix=url_version)
@@ -56,14 +57,14 @@ def register_extensions(app):
 
     @app.before_request
     def before_request():
-        if request.method == 'POST':
+        if request.method == "POST":
             # check for json data
             json_data = request.get_json()
             if not json_data:
                 response = {
-                    'error': {
-                        'message': 'Invalid request format. Please provide a valid JSON body.',
-                        'status': 'Fail'
+                    "error": {
+                        "message": "Invalid request format. Please provide a valid JSON body.",
+                        "status": "Fail",
                     }
                 }
                 return make_response(jsonify(response), 403)
@@ -74,7 +75,7 @@ def register_extensions(app):
 
 def fernet_encrypt(secret):
     # covert secret to bytes
-    b_secret = bytes(secret, encoding='utf-8')
+    b_secret = bytes(secret, encoding="utf-8")
     token = fernet_key.encrypt(b_secret)
     return token
 
@@ -85,13 +86,12 @@ def fernet_decrypt(token):
 
 
 # define db
-db = SQLAlchemy(session_options={
-    'expire_on_commit': not config.IS_TEST
-})
+db = SQLAlchemy(session_options={"expire_on_commit": not config.IS_TEST})
 
 # africa's talking sms client
-africastalking.initialize(username=config.AFRICASTALKING_USERNAME,
-                          api_key=config.AFRICASTALKING_API_KEY)
+africastalking.initialize(
+    username=config.AFRICASTALKING_USERNAME, api_key=config.AFRICASTALKING_API_KEY
+)
 
 sms = africastalking.SMS
 
@@ -105,13 +105,13 @@ app_logger = logging.getLogger(__name__)
 
 class ContextEnvironment:
     def __init__(self, app):
-        self.deployment_name = app.config['DEPLOYMENT_NAME']
+        self.deployment_name = app.config["DEPLOYMENT_NAME"]
 
     def is_development(self):
-        return self.deployment_name == 'development'
+        return self.deployment_name == "development"
 
     def is_production(self):
-        return self.deployment_name == 'production'
+        return self.deployment_name == "production"
 
     def is_testing(self):
-        return self.deployment_name == 'testing'
+        return self.deployment_name == "testing"

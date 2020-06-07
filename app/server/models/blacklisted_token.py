@@ -8,7 +8,8 @@ class BlacklistedToken(BaseModel):
     """
     Create a blacklisted token
     """
-    __tablename__ = 'blacklisted_tokens'
+
+    __tablename__ = "blacklisted_tokens"
 
     token = db.Column(db.String(500), unique=True, nullable=False)
     blacklisted_on = db.Column(db.DateTime, nullable=False)
@@ -27,4 +28,4 @@ class BlacklistedToken(BaseModel):
         self.blacklisted_on = datetime.now()
 
     def __repr__(self):
-        return f'<id: token: {self.token}'
+        return f"<id: token: {self.token}"

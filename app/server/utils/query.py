@@ -14,9 +14,9 @@ def paginate_query(query, queried_object=None, order_override=None):
     :returns: tuple of (item list, total number of items, total number of pages)
     """
 
-    updated_after = request.args.get('updated_after')
-    page = request.args.get('page')
-    per_page = request.args.get('per_page')
+    updated_after = request.args.get("updated_after")
+    page = request.args.get("page")
+    per_page = request.args.get("per_page")
 
     if updated_after:
         parsed_time = parser.isoparse(updated_after)

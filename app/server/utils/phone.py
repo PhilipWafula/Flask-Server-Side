@@ -18,7 +18,7 @@ def process_phone_number(phone_number, region=None, ignore_region=False):
         return phone_number
 
     if region is None:
-        region = current_app.config['DEFAULT_COUNTRY']
+        region = current_app.config["DEFAULT_COUNTRY"]
 
     if not isinstance(phone_number, str):
         try:
@@ -29,6 +29,8 @@ def process_phone_number(phone_number, region=None, ignore_region=False):
 
     phone_number_object = phonenumbers.parse(phone_number, region)
 
-    parsed_phone_number = phonenumbers.format_number(phone_number_object, phonenumbers.PhoneNumberFormat.E164)
+    parsed_phone_number = phonenumbers.format_number(
+        phone_number_object, phonenumbers.PhoneNumberFormat.E164
+    )
 
     return parsed_phone_number

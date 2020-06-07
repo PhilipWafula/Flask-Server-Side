@@ -18,13 +18,15 @@ def check_mailer_configured(organization: Organization):
     mailer_setting_missing = True
     if settings:
         # get mailer settings
-        mailer_settings = [config.MAILER_SERVER,
-                           config.MAILER_PORT,
-                           config.MAILER_USERNAME,
-                           config.MAILER_PASSWORD,
-                           config.MAILER_DEFAULT_SENDER,
-                           config.MAILER_USE_SSL,
-                           config.MAILER_USE_TSL]
+        mailer_settings = [
+            config.MAILER_SERVER,
+            config.MAILER_PORT,
+            config.MAILER_USERNAME,
+            config.MAILER_PASSWORD,
+            config.MAILER_DEFAULT_SENDER,
+            config.MAILER_USE_SSL,
+            config.MAILER_USE_TSL,
+        ]
         # check if any is None
         mailer_setting_missing = any(setting is None for setting in mailer_settings)
 
@@ -40,7 +42,7 @@ def _get_email_template(template_file):
     :param template_file: name of the template file.
     :return: email template file.
     """
-    search_path = os.path.join(current_app.config['BASEDIR'], 'templates')
+    search_path = os.path.join(current_app.config["BASEDIR"], "templates")
 
     template_loader = jinja2.FileSystemLoader(searchpath=search_path)
     template_environment = jinja2.Environment(loader=template_loader)
@@ -48,15 +50,17 @@ def _get_email_template(template_file):
     return template_environment.get_template(template_file)
 
 
-def _get_mail_body(action: str,
-                   action_tag: str,
-                   action_url: str,
-                   copyright_year: int,
-                   file_name: str,
-                   given_names: str,
-                   mail_message: str,
-                   organization_address: str,
-                   organization_name: str):
+def _get_mail_body(
+    action: str,
+    action_tag: str,
+    action_url: str,
+    copyright_year: int,
+    file_name: str,
+    given_names: str,
+    mail_message: str,
+    organization_address: str,
+    organization_name: str,
+):
     """
     This method builds a mail body as per the flask_mail mailer object requirements. It takes the arguments below
     and leverages the provided email template files to render the respective html or text body files.
@@ -75,25 +79,25 @@ def _get_mail_body(action: str,
     """
     template_file = file_name
     template = _get_email_template(template_file)
-    mail_body = template.render(action=action,
-                                action_tag=action_tag,
-                                action_url=action_url,
-                                copyright_year=copyright_year,
-                                given_names=given_names,
-                                mail_message=mail_message,
-                                organization_address=organization_address,
-                                organization_name=organization_name)
+    mail_body = template.render(
+        action=action,
+        action_tag=action_tag,
+        action_url=action_url,
+        copyright_year=copyright_year,
+        given_names=given_names,
+        mail_message=mail_message,
+        organization_address=organization_address,
+        organization_name=organization_name,
+    )
     return mail_body
 
 
-def mail_handler(email_recipients: list,
-                 mail_sender: str,
-                 subject: str,
-                 text_body,
-                 html_body=None):
+def mail_handler(
+    email_recipients: list, mail_sender: str, subject: str, text_body, html_body=None
+):
     context_env = ContextEnvironment(current_app)
     if context_env.is_development or context_env.is_testing:
-        recipients_logging_format = ', '.join(email_recipients)
+        recipients_logging_format = ", ".join(email_recipients)
         app_logger.info(
             "IS NOT PRODUCTION NOT ACTUALLY SENDING:\n"
             f"From: {mail_sender}\n"
@@ -115,41 +119,52 @@ class Mailer:
         self.organization_address = organization.address
         self.organization_domain = config.APP_DOMAIN
 
-    def send_template_email(self, mail_type: str, email: str, given_names: str, token: str):
-        if mail_type == 'user_activation':
-            action_url = self.organization_domain + f'/login?activation_token={token}'
+    def send_template_email(
+        self, mail_type: str, email: str, given_names: str, token: str
+    ):
+        if mail_type == "user_activation":
+            action_url = self.organization_domain + f"/login?activation_token={token}"
             action_tag, mail_message = self.mail_message.activate_user_mail_message()
-        elif mail_type == 'reset_password':
-            action_url = self.organization_domain + f'/reset-password?token={token}'
-            action_tag, mail_message = self.mail_message.reset_user_password_mail_message()
+        elif mail_type == "reset_password":
+            action_url = self.organization_domain + f"/reset-password?token={token}"
+            (
+                action_tag,
+                mail_message,
+            ) = self.mail_message.reset_user_password_mail_message()
         else:
-            raise Exception('Unsupported mail type.')
+            raise Exception("Unsupported mail type.")
 
         copyright_year = datetime.now().year
-        action = action_tag.strip(f'{self.organization_name}')
+        action = action_tag.strip(f"{self.organization_name}")
 
-        html_body = _get_mail_body(action=action,
-                                   action_tag=action_tag,
-                                   action_url=action_url,
-                                   copyright_year=copyright_year,
-                                   file_name='action_email.html',
-                                   given_names=given_names,
-                                   mail_message=mail_message,
-                                   organization_address=self.organization_address,
-                                   organization_name=self.organization_name)
+        html_body = _get_mail_body(
+            action=action,
+            action_tag=action_tag,
+            action_url=action_url,
+            copyright_year=copyright_year,
+            file_name="action_email.html",
+            given_names=given_names,
+            mail_message=mail_message,
+            organization_address=self.organization_address,
+            organization_name=self.organization_name,
+        )
 
-        text_body = _get_mail_body(action=action,
-                                   action_tag=action_tag,
-                                   action_url=action_url,
-                                   copyright_year=copyright_year,
-                                   file_name='action_email.txt',
-                                   given_names=given_names,
-                                   mail_message=mail_message,
-                                   organization_address=self.organization_address,
-                                   organization_name=self.organization_name)
+        text_body = _get_mail_body(
+            action=action,
+            action_tag=action_tag,
+            action_url=action_url,
+            copyright_year=copyright_year,
+            file_name="action_email.txt",
+            given_names=given_names,
+            mail_message=mail_message,
+            organization_address=self.organization_address,
+            organization_name=self.organization_name,
+        )
 
-        mail_handler(email_recipients=[email],
-                     html_body=html_body,
-                     mail_sender=self.mail_sender,
-                     subject=action_tag,
-                     text_body=text_body)
+        mail_handler(
+            email_recipients=[email],
+            html_body=html_body,
+            mail_sender=self.mail_sender,
+            subject=action_tag,
+            text_body=text_body,
+        )

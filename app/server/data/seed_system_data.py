@@ -12,7 +12,7 @@ def system_seed():
         db.session.commit()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = create_app()
     app_context = app.app_context()
     app_context.push()
