@@ -1,0 +1,76 @@
+name: Flask Server-Side CI
+on:
+  push:
+    branches:
+      - spencer/setup-ci-cd
+    pull_request:
+      branches:
+        - master
+
+env:
+  DEPLOYMENT_NAME: DOCKER
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:11.7
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_HOST: localhost
+          POSTGRES_DB: flask_server_side_docker
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:latest
+        ports:
+          - 6379/tcp
+
+    strategy:
+      matrix:
+        python-version: ['3.6', '3.7', '3.8']
+    name: Python ${{ matrix.python-version }}
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v1
+
+      - name: Install python
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+
+      - name: Install git secret
+        run: |
+          sudo apt-get update && sudo apt-get install apt-transport-https
+          echo "deb https://dl.bintray.com/sobolevn/deb git-secret main" | sudo tee -a /etc/apt/sources.list
+          wget -qO - https://api.bintray.com/users/sobolevn/keys/gpg/public.key | sudo apt-key add -
+          sudo apt-get update && sudo apt-get install git-secret
+
+      - name: Reveal git secrets
+        run: |
+          echo -e "${{ secrets.GPG_KEY }}" | gpg --import
+          git secret reveal -f
+
+      - name: Setup and activate python environment
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+
+      - name: Run Test suite
+        run: |
+          export PYTHONPATH=$PYTHONPATH:"home/runner/worker/Flask-Server-Side"
+          cd devtools/
+          source install_requirements.sh
+          python3 app/manage.py db upgrade
+          python3 app/server/data/seed_system_data.py
+          python3 run_unit_tests.py
+          python3 run_integration_tests.py

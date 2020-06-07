@@ -9,7 +9,8 @@ class Organization(BaseModel):
     """
     Creates an organization
     """
-    __tablename__ = 'organizations'
+
+    __tablename__ = "organizations"
 
     # attributes
     name = db.Column(db.String(100))
@@ -17,7 +18,7 @@ class Organization(BaseModel):
     public_identifier = db.Column(db.String(8), nullable=False, index=True, unique=True)
     address = db.Column(db.String, nullable=True)
 
-    users = db.relationship('User', backref='organization')
+    users = db.relationship("User", backref="organization")
 
     @staticmethod
     def master_organisation() -> "Organization":
@@ -26,6 +27,5 @@ class Organization(BaseModel):
     def __init__(self, public_identifier=None, **kwargs):
         super(Organization, self).__init__(**kwargs)
         components = string.ascii_letters + string.digits
-        identifier = ''.join(random.choice(components) for i in range(8))
+        identifier = "".join(random.choice(components) for i in range(8))
         self.public_identifier = public_identifier or identifier
-

@@ -1,5 +1,5 @@
 ## Flask-Server-Side
-A small flask application that provides the server side functionality for a basic SAAS application. 
+A small flask application that provides the server side functionality for a basic SAAS application.
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development
@@ -17,7 +17,7 @@ _This guide assumes you are running a linux DistrOS_
 - PostgreSQL
 - Access to system settingss.
 
- 
+
 ### Getting system configs
 
 We use ` git secret` and encrypt our settings files using gpg keys. To get access the config files and decrypt them,
@@ -29,7 +29,7 @@ Once your credentials have been added to the key ring, decrypt the config files:
 git secret reveal
 ```
 
-Succeeding a successful decryption of the config files, change the settings to match your local environment 
+Succeeding a successful decryption of the config files, change the settings to match your local environment
 set up:
 
 ```
