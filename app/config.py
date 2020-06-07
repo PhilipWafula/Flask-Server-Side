@@ -5,7 +5,7 @@ from pathlib import Path
 
 API_VERSION = '0.0.1'
 
-# get absolute path for config file [/faulu-api-demo/config]
+# get absolute path for config file [/flask-server-side/config]
 CONFIG_FILE_DIRECTORY = Path(os.path.dirname(__file__)).parent
 
 # get environment on which API is running

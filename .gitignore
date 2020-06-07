@@ -16,3 +16,4 @@
 # config files
 /config/development_config.ini
 /config/testing_config.ini
+/config/docker_config.ini
