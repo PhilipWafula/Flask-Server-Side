@@ -12,8 +12,7 @@
 .pytest_cache/
 
 /venv/*
-
-# config files
-/config/development_config.ini
-/config/testing_config.ini
-/config/docker_config.ini
+config/secret/common_secrets.ini
+config/secret/development_secrets.ini
+config/secret/docker_secrets.ini
+config/secret/testing_secrets.ini
