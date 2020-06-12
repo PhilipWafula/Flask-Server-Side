@@ -20,7 +20,7 @@ _This guide assumes you are running a linux DistrOS_
 
 ### Getting system configs
 
-We use ` git secret` and encrypt our settings files using gpg keys. To get access the config files and decrypt them,
+We use ` git secret` and encrypt our settings files using gpg keys. To get access the secret files and decrypt them,
 setup [git secret](https://git-secret.io/). Once complete, reach out to [Philip Wafula](philipwafula2@gmailcom)
 and request to have your public gpg key added to the public keys set in the `.gitsecret` file.
 
@@ -54,7 +54,8 @@ Run `install_requirements.sh` to install all requirements, with the command:
 cd devtools/
 source install_requirements.sh
 ```
-To get a fully functional instance of the application set up, run the `setup_development_environment.sh` script:
+To get a fully functional instance of the application set up from scratch, run the 
+`setup_development_environment.sh` script from the devtools folder:
 
 ```shell script
 source setup_development_environment.sh
@@ -98,7 +99,7 @@ python3 manage.py db merge heads
 ```
 
 ### Testing
-To conduct some gorilla tests on the API, import the provided `test_apis_postman_collections.json` into your postmasn
+To conduct some gorilla tests on the API, import the provided `test_apis_postman_collections.json` into your postman
 application and run the tests from there.
 
 ### Background tasks
