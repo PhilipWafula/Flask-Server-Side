@@ -109,6 +109,13 @@ To run background tasks such as sending actual emails, ensure you're in the root
 celery worker -A worker.tasks --loglevel=info
 ```
 
+## Contributing
+Contributions are welcome. Questions can be asked on the issues page. Before creating a new issue, please take a moment
+to search and make sure a similar issue does not already exist. If one does exist, you can comment (most simply even
+with just a :+1:) to show your support for that issue.
+
+If you have direct contributions you would like considered for incorporation into the project you can fork this
+repository and submit a pull request for review, ensure you follow the the [Contribution guidelines](CONTRIBUTING.md)
 
 ## Authors
 
