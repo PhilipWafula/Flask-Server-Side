@@ -1,11 +1,5 @@
 name: Flask Server-Side CI
-on:
-  push:
-    branches:
-      - spencer/setup-ci-cd
-    pull_request:
-      branches:
-        - master
+on: [push, pull_request]
 
 env:
   DEPLOYMENT_NAME: DOCKER
