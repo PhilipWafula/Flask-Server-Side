@@ -10,3 +10,18 @@ SUPPORTED_MAILER_SETTINGS = [
     "USE_SSL",
     "USE_TSL",
 ]
+AFRICAS_TALKING_CURRENCY_CODES = ["KES", "UGX", "USD"]
+AFRICAS_TALKING_PROVIDERS = ["Athena", "Mpesa"]
+AFRICAS_TALKING_TRANSFER_TYPES = [
+    "BusinessBuyGoods",
+    "BusinessPayBill",
+    "DisburseFundsToBusiness",
+    "BusinessToBusinessTransfer",
+]
+AFRICAS_TALKING_REASONS = [
+    "SalaryPayment",
+    "SalaryPaymentWithWithdrawalChargePaid",
+    "BusinessPayment",
+    "BusinessPaymentWithWithdrawalChargePaid",
+    "PromotionPayment",
+]
