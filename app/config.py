@@ -29,9 +29,15 @@ public_config_file_parser = configparser.ConfigParser()
 secrets_config_file_parser = configparser.ConfigParser()
 
 # get folder for path for config files
-public_config_files_folder_path = os.path.join(CONFIG_FILE_DIRECTORY, "config/public/" + PUBLIC_CONFIG_FILENAME)
-common_config_files_folder_path = os.path.join(CONFIG_FILE_DIRECTORY, "config/secret/" + COMMON_CONFIG_FILENAME)
-secret_config_files_folder_path = os.path.join(CONFIG_FILE_DIRECTORY, "config/secret/" + SECRETS_CONFIG_FILENAME)
+public_config_files_folder_path = os.path.join(
+    CONFIG_FILE_DIRECTORY, "config/public/" + PUBLIC_CONFIG_FILENAME
+)
+common_config_files_folder_path = os.path.join(
+    CONFIG_FILE_DIRECTORY, "config/secret/" + COMMON_CONFIG_FILENAME
+)
+secret_config_files_folder_path = os.path.join(
+    CONFIG_FILE_DIRECTORY, "config/secret/" + SECRETS_CONFIG_FILENAME
+)
 
 # check if specific config files are present
 if not os.path.isfile(common_config_files_folder_path):
@@ -95,6 +101,21 @@ PASSWORD_PEPPER = public_config_file_parser["APP"].get("password_pepper")
 # get africa's talking credentials
 AFRICASTALKING_USERNAME = secrets_config_file_parser["AFRICASTALKING"].get("username")
 AFRICASTALKING_API_KEY = secrets_config_file_parser["AFRICASTALKING"].get("api_key")
+AFRICASTALKING_PRODUCT_NAME = secrets_config_file_parser["AFRICASTALKING"].get(
+    "product_name"
+)
+AFRICASTALKING_MOBILE_CHECKOUT_URL = public_config_file_parser["AFRICASTALKING"].get(
+    "mobile_checkout"
+)
+AFRICASTALKING_MOBILE_B2B_URL = public_config_file_parser["AFRICASTALKING"].get(
+    "mobile_b2b"
+)
+AFRICASTALKING_MOBILE_B2C_URL = public_config_file_parser["AFRICASTALKING"].get(
+    "mobile_b2c"
+)
+AFRICAS_TALKING_WALLET_BALANCE = public_config_file_parser["AFRICASTALKING"].get(
+    "wallet_balance"
+)
 
 # define mailer settings
 MAILER_SERVER = common_config_file_parser["MAILER"].get("server")
@@ -105,3 +126,6 @@ MAILER_DEFAULT_SENDER = common_config_file_parser["MAILER"].get("default_sender"
 MAILER_MAX_EMAILS = common_config_file_parser["MAILER"].get("max_emails")
 MAILER_USE_SSL = common_config_file_parser["MAILER"].getboolean("use_ssl")
 MAILER_USE_TSL = common_config_file_parser["MAILER"].getboolean("use_tsl")
+
+# get phone number format pattern
+PHONE_NUMBER_FORMAT = public_config_file_parser["REGEX"].get("phone_number_format")
