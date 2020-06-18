@@ -55,3 +55,55 @@ def mailer_not_configured():
 def otp_resent_successfully():
     response = {"message": "Pin resent successfully.", "status": "Success"}
     return response, 200
+
+
+def invalid_amount_type(amount: float):
+    response = {
+        "error": {
+            "message": f"Incorrect amount type: {type(amount)}",
+            "status": "Fail",
+        }
+    }
+    return response, 422
+
+
+def invalid_phone_number_format(phone_number: str):
+    response = {
+        "error": {
+            "message": f"Incorrect phone number format: {phone_number}",
+            "status": "Fail",
+        }
+    }
+    return response, 422
+
+
+def unsupported_currency_code(currency_code: str):
+    response = {
+        "error": {
+            "message": f"Unsupported currency code: {currency_code}",
+            "status": "Fail",
+        }
+    }
+    return response, 422
+
+
+def unsupported_provider(provider: str):
+    response = {
+        "error": {"message": f"Unsupported provider: {provider}", "status": "Fail"}
+    }
+    return response, 422
+
+
+def unsupported_transfer_type(transfer_type: str):
+    response = {
+        "error": {
+            "message": f"Unsupported transfer type: {transfer_type}",
+            "status": "Fail",
+        }
+    }
+    return response, 422
+
+
+def unsupported_reason(reason: str):
+    response = {"error": {"message": f"Unsupported reason: {reason}", "status": "Fail"}}
+    return response, 422
