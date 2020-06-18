@@ -1,6 +1,8 @@
+"""project-wide test fixtures."""
 import pytest
 from flask import current_app
 
+from app import config
 from app.server import create_app, db, app_logger
 from app.server.data.seed_system_data import system_seed
 from app.server.models.organization import Organization
@@ -164,3 +166,50 @@ def create_blacklisted_token(activated_admin_user):
     db.session.add(blacklisted_token)
     db.session.commit()
     return blacklisted_token
+
+
+@pytest.fixture(autouse=True)
+def example_checkout_transaction_data():
+    """Fixture for mocking checkout transaction data."""
+    return {
+        "amount": 10000.00,
+        "phoneNumber": "+254700000000",
+        "productName": config.AFRICASTALKING_PRODUCT_NAME,
+        "username": config.AFRICASTALKING_USERNAME,
+        "currencyCode": "KES",
+        "providerChannel": "000000",
+    }
+
+
+@pytest.fixture(autouse=True)
+def example_b2b_transaction_data():
+    """Fixture for mocking b2b transaction data."""
+    return {
+        "amount": 10.00,
+        "destinationAccount": "sandbox",
+        "destinationChannel": "000000",
+        "productName": config.AFRICASTALKING_PRODUCT_NAME,
+        "provider": "Mpesa",
+        "transferType": "BusinessPayBill",
+        "username": config.AFRICASTALKING_USERNAME,
+        "currencyCode": "KES",
+    }
+
+
+@pytest.fixture(autouse=True)
+def example_b2c_transaction_data():
+    """Fixture for mocking b2c transaction data."""
+    return {
+        "productName": config.AFRICASTALKING_PRODUCT_NAME,
+        "username": config.AFRICASTALKING_USERNAME,
+        "recipients": [
+            {
+                "amount": 10.00,
+                "phoneNumber": "+254700000000",
+                "currencyCode": "KES",
+                "name": "Turing",
+                "providerChannel": "000000",
+                "reason": "SalaryPayment",
+            }
+        ],
+    }
