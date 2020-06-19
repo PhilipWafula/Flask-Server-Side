@@ -68,15 +68,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Prepare database
-        run: |
-          python3 app/manage.py db upgrade
-          python3 app/server/data/seed_system_data.py
       - name: test suite and upload test coverage
         run: |
           coverage run run_test_suite.py
       - name: Upload test coverage to CodeCov
-        uses: codecov/codcov-action@v1
+        uses: codecov/codecov-action@v1
         with:
           token: '${{ secrets.CODECOV_TOKEN }}'
           file: ./coverage
