@@ -26,7 +26,6 @@ jobs:
           POSTGRES_DB: flask_server_side_docker
         ports:
           - 5432:5432
-          # Add a health check
           options: >-
             --health-cmd pg_isready
             --health-interval 10s
