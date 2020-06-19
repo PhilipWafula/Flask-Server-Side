@@ -1,9 +1,10 @@
 ## Flask-Server-Side
-A small flask application that provides the server side functionality for a basic SAAS application.
 
 ![Flask Server-Side CI](https://github.com/PhilipWafula/Flask-Server-Side/workflows/Flask%20Server-Side%20CI/badge.svg)
-[![codecov](https://codecov.io/gh/PhilipWafula/Flask-Server-Side/branch/master/graph/badge.svg)]
+![codecov](https://codecov.io/gh/PhilipWafula/Flask-Server-Side/branch/master/graph/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+A small flask application that provides the server side functionality for a basic SAAS application.
 
 ## Getting Started
 
