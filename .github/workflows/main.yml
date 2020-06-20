@@ -3,7 +3,7 @@ name: Flask-Server-Side CI-CD
   - push
   - pull_request
 jobs:
-  build:
+  build_and_test:
     strategy:
       matrix:
         python-version:
@@ -64,10 +64,6 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           cd devtools
           source install_requirements.sh
-  test:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
       - name: test suite and upload test coverage
         run: |
           coverage run run_test_suite.py
