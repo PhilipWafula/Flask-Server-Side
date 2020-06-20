@@ -67,10 +67,10 @@ jobs:
       - name: test suite and upload test coverage
         run: |
           coverage run run_test_suite.py
+          ls
       - name: Upload test coverage to CodeCov
         uses: codecov/codecov-action@v1
         with:
           token: '${{ secrets.CODECOV_TOKEN }}'
-          env_vars: 'OS,PYTHON'
           name: codecov-umbrella
           fail_ci_if_error: true
