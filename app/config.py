@@ -65,7 +65,7 @@ IS_TEST = public_config_file_parser["APP"].getboolean("IS_TEST")
 IS_PRODUCTION = public_config_file_parser["APP"].getboolean("IS_PRODUCTION")
 
 # get application configs
-SECRET_KEY = public_config_file_parser["APP"].get("secret_key")
+SECRET_KEY = secrets_config_file_parser["APP"].get("secret_key")
 APP_HOST = public_config_file_parser["APP"].get("host")
 APP_PORT = public_config_file_parser["APP"].get("port")
 APP_DOMAIN = public_config_file_parser["APP"].get("client_domain")
@@ -96,7 +96,7 @@ log.info("Working database URI: " + CENSORED_URI)
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # get password pepper
-PASSWORD_PEPPER = public_config_file_parser["APP"].get("password_pepper")
+PASSWORD_PEPPER = secrets_config_file_parser["APP"].get("password_pepper")
 
 # get africa's talking credentials
 AFRICASTALKING_USERNAME = secrets_config_file_parser["AFRICASTALKING"].get("username")
