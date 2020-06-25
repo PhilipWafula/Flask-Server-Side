@@ -126,6 +126,3 @@ MAILER_DEFAULT_SENDER = common_config_file_parser["MAILER"].get("default_sender"
 MAILER_MAX_EMAILS = common_config_file_parser["MAILER"].get("max_emails")
 MAILER_USE_SSL = common_config_file_parser["MAILER"].getboolean("use_ssl")
 MAILER_USE_TSL = common_config_file_parser["MAILER"].getboolean("use_tsl")
-
-# get phone number format pattern
-PHONE_NUMBER_FORMAT = public_config_file_parser["REGEX"].get("phone_number_format")

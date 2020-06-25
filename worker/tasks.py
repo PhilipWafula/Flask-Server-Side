@@ -72,7 +72,7 @@ def initiate_africas_talking_checkout(
 
 
 @celery.task
-def initiate_africas_talking_b2b(api_key: str, b2b_transaction: Optional[Dict] = None):
+def initiate_africas_talking_business_to_business_transaction(api_key: str, b2b_transaction: Optional[Dict] = None):
     """B2B post request task.
 
     :param api_key: Africa's Talking access token
@@ -99,7 +99,7 @@ def initiate_africas_talking_b2b(api_key: str, b2b_transaction: Optional[Dict] =
 
 
 @celery.task
-def initiate_africas_talking_b2c(api_key: str, b2c_transaction: Optional[Dict] = None):
+def initiate_africas_talking_business_to_consumer_transaction(api_key: str, b2c_transaction: Optional[Dict] = None):
     """B2C post request task.
 
     :param api_key: Africa's Talking access token
@@ -126,8 +126,8 @@ def initiate_africas_talking_b2c(api_key: str, b2c_transaction: Optional[Dict] =
 
 
 @celery.task
-def initiate_africas_talking_wallet_balance(api_key: str, username: str):
-    """Wallet balance post request task.
+def initiate_africas_talking_wallet_balance_request(api_key: str, username: str):
+    """Wallet balance get request task.
 
     :param api_key: Africa's Talking access token
     :param username: Africa's Talking username

@@ -6,9 +6,9 @@ from typing import Dict, Optional
 from flask import jsonify, make_response
 
 # application imports
-from app import config
 from app.server import constants
 from app.server.templates import responses
+from app.server.utils.phone import process_phone_number
 from worker import tasks
 
 
@@ -38,6 +38,9 @@ class AfricasTalking:
         :param provider_channel: The channel through which the payment has been initiated from
         :return: The transaction object
         """
+        # ensure that phone number is in correct MSISDN format
+        phone_number = process_phone_number(phone_number, 'KE')
+
         # check that amount is of type float
         if not isinstance(amount, float):
             try:
@@ -45,11 +48,6 @@ class AfricasTalking:
             except ValueError:
                 response, status_code = responses.invalid_amount_type(amount)
                 return make_response(jsonify(response, status_code))
-
-        # check that phone number is in correct MSISDN format
-        if not re.match(config.PHONE_NUMBER_FORMAT, phone_number):
-            response, status_code = responses.invalid_phone_number_format(phone_number)
-            return make_response(jsonify(response), status_code)
 
         # check that currency is in supported currency codes
         if currency_code not in constants.AFRICAS_TALKING_CURRENCY_CODES:
@@ -72,7 +70,7 @@ class AfricasTalking:
 
         return checkout_transaction
 
-    def initiate_b2b(
+    def initiate_business_to_business_transaction(
         self,
         amount: float,
         destination_account: str,
@@ -134,7 +132,7 @@ class AfricasTalking:
 
         return b2b_transaction
 
-    def initiate_b2c(
+    def initiate_business_to_consumer_transaction(
         self,
         amount: float,
         phone_number: str,
@@ -157,6 +155,9 @@ class AfricasTalking:
         :param reason: The purpose of the payment
         :return: The transaction object
         """
+        # ensure that phone number is in correct MSISDN format
+        phone_number = process_phone_number(phone_number, 'KE')
+
         # check that amount is of type float
         if not isinstance(amount, float):
             try:
@@ -164,11 +165,6 @@ class AfricasTalking:
             except ValueError:
                 response, status_code = responses.invalid_amount_type(amount)
                 return make_response(jsonify(response, status_code))
-
-        # check that phone number is in correct MSISDN format
-        if not re.match(config.PHONE_NUMBER_FORMAT, phone_number):
-            response, status_code = responses.invalid_phone_number_format(phone_number)
-            return make_response(jsonify(response), status_code)
 
         # check that currency is in supported currency codes
         if currency_code not in constants.AFRICAS_TALKING_CURRENCY_CODES:
@@ -218,22 +214,22 @@ class AfricasTalking:
             self.api_key, checkout_transaction
         )
 
-    def b2b(self, b2b_transaction: Optional[Dict] = None):
+    def business_to_business_transaction(self, b2b_transaction: Optional[Dict] = None):
         """This function creates a task for sending a B2B post request.
 
         :param b2b_transaction: B2B transaction object
         :return: null
         """
-        tasks.initiate_africas_talking_b2b.delay(self.api_key, b2b_transaction)
+        tasks.initiate_africas_talking_business_to_business_transaction.delay(self.api_key, b2b_transaction)
 
-    def b2c(self, b2c_transaction: Optional[Dict] = None):
+    def business_to_consumer_transaction(self, b2c_transaction: Optional[Dict] = None):
         """This function creates a task for sending a B2C post request.
 
         :param b2c_transaction: B2C transaction object
         :return: null
         """
-        tasks.initiate_africas_talking_b2c.delay(self.api_key, b2c_transaction)
+        tasks.initiate_africas_talking_business_to_consumer_transaction.delay(self.api_key, b2c_transaction)
 
-    def wallet_balance(self):
+    def wallet_balance_request(self):
         """This function creates a task for sending a wallet balance query."""
-        tasks.initiate_africas_talking_wallet_balance.delay(self.api_key, self.username)
+        tasks.initiate_africas_talking_wallet_balance_request.delay(self.api_key, self.username)

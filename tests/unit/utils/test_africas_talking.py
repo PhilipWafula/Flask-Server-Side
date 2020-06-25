@@ -11,7 +11,7 @@ from app.server.utils.payments.africas_talking import AfricasTalking
 
 @pytest.mark.parametrize(
     "amount, phone_number, product_name, provider_channel",
-    [(10000.00, "+254700000000", config.AFRICASTALKING_PRODUCT_NAME, "000000")],
+    [(10000.00, "0700000000", config.AFRICASTALKING_PRODUCT_NAME, "000000")],
 )
 def test_initiate_mobile_checkout(
     example_checkout_transaction_data: Mock,
@@ -46,7 +46,7 @@ def test_initiate_mobile_checkout(
         )
     ],
 )
-def test_initiate_b2b(
+def test_initiate_business_to_business_transaction(
     example_b2b_transaction_data: Mock,
     amount: float,
     destination_account: str,
@@ -59,7 +59,7 @@ def test_initiate_b2b(
     payment = AfricasTalking(
         config.AFRICASTALKING_API_KEY, config.AFRICASTALKING_USERNAME
     )
-    transaction = payment.initiate_b2b(
+    transaction = payment.initiate_business_to_business_transaction(
         amount=amount,
         destination_account=destination_account,
         destination_channel=destination_channel,
@@ -75,7 +75,7 @@ def test_initiate_b2b(
     [
         (
             10.00,
-            "+254700000000",
+            "0700000000",
             config.AFRICASTALKING_PRODUCT_NAME,
             "Turing",
             "000000",
@@ -83,7 +83,7 @@ def test_initiate_b2b(
         )
     ],
 )
-def test_initiate_b2c(
+def test_initiate_business_to_consumer_transaction(
     example_b2c_transaction_data: Mock,
     amount: float,
     phone_number: str,
@@ -96,7 +96,7 @@ def test_initiate_b2c(
     payment = AfricasTalking(
         config.AFRICASTALKING_API_KEY, config.AFRICASTALKING_USERNAME
     )
-    transaction = payment.initiate_b2c(
+    transaction = payment.initiate_business_to_consumer_transaction(
         amount=amount,
         phone_number=phone_number,
         product_name=product_name,

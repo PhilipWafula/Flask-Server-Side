@@ -30,14 +30,20 @@ def user_not_found(user_id: int):
 
 def user_id_not_provided():
     response = {
-        "error": {"message": "Please provide a valid user id.", "status": "Fail"}
+        "error": {
+            "message": "Please provide a valid user id.",
+            "status": "Fail"
+        }
     }
     return response, 422
 
 
 def invalid_request_on_validation(message: str):
     response = {
-        "error": {"message": "Invalid request: {}".format(message), "status": "Fail"}
+        "error": {
+            "message": "Invalid request: {}".format(message),
+            "status": "Fail"
+        }
     }
     return response, 400
 
@@ -53,7 +59,10 @@ def mailer_not_configured():
 
 
 def otp_resent_successfully():
-    response = {"message": "Pin resent successfully.", "status": "Success"}
+    response = {
+        "message": "Pin resent successfully.",
+        "status": "Success"
+    }
     return response, 200
 
 
@@ -89,7 +98,10 @@ def unsupported_currency_code(currency_code: str):
 
 def unsupported_provider(provider: str):
     response = {
-        "error": {"message": f"Unsupported provider: {provider}", "status": "Fail"}
+        "error": {
+            "message": f"Unsupported provider: {provider}",
+            "status": "Fail"
+        }
     }
     return response, 422
 
@@ -105,5 +117,10 @@ def unsupported_transfer_type(transfer_type: str):
 
 
 def unsupported_reason(reason: str):
-    response = {"error": {"message": f"Unsupported reason: {reason}", "status": "Fail"}}
+    response = {
+        "error": {
+            "message": f"Unsupported reason: {reason}",
+            "status": "Fail"
+        }
+    }
     return response, 422
