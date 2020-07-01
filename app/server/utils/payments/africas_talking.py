@@ -19,7 +19,7 @@ class AfricasTalking:
         self.api_key = api_key
         self.username = username
 
-    def initiate_mobile_checkout(
+    def create_mobile_checkout(
         self,
         amount: float,
         phone_number: str,
@@ -54,23 +54,23 @@ class AfricasTalking:
             response, status_code = responses.unsupported_currency_code(currency_code)
             return make_response(jsonify(response), status_code)
 
-        checkout_transaction = {
+        mobile_checkout_transaction = {
             "amount": amount,
             "phoneNumber": phone_number,
             "productName": product_name,
             "username": self.username,
-            "currencyCode": currency_code,
+            "currencyCode": currency_code
         }
 
         if metadata:
-            checkout_transaction["metadata"] = metadata
+            mobile_checkout_transaction["metadata"] = metadata
 
         if provider_channel:
-            checkout_transaction["providerChannel"] = provider_channel
+            mobile_checkout_transaction["providerChannel"] = provider_channel
 
-        return checkout_transaction
+        return mobile_checkout_transaction
 
-    def initiate_business_to_business_transaction(
+    def create_business_to_business_transaction(
         self,
         amount: float,
         destination_account: str,
@@ -116,7 +116,7 @@ class AfricasTalking:
             response, status_code = responses.unsupported_currency_code(currency_code)
             return make_response(jsonify(response), status_code)
 
-        b2b_transaction = {
+        business_to_business_transaction = {
             "amount": amount,
             "destinationAccount": destination_account,
             "destinationChannel": destination_channel,
@@ -128,11 +128,11 @@ class AfricasTalking:
         }
 
         if metadata:
-            b2b_transaction["metadata"] = metadata
+            business_to_business_transaction["metadata"] = metadata
 
-        return b2b_transaction
+        return business_to_business_transaction
 
-    def initiate_business_to_consumer_transaction(
+    def create_business_to_consumer_transaction(
         self,
         amount: float,
         phone_number: str,
@@ -196,40 +196,40 @@ class AfricasTalking:
 
         recipients = [recipient]
 
-        b2c_transaction = {
+        business_to_consumer_transaction = {
             "productName": product_name,
             "username": self.username,
             "recipients": recipients,
         }
 
-        return b2c_transaction
+        return business_to_consumer_transaction
 
-    def checkout(self, checkout_transaction: Optional[Dict] = None):
-        """This function creates a task for sending a checkout post request.
+    def initiate_mobile_checkout(self, mobile_checkout_transaction: Optional[Dict] = None):
+        """This functions calls the task necessary to perform a checkout transaction.
 
-        :param checkout_transaction: checkout transaction object
+        :param mobile_checkout_transaction: checkout transaction object
         :return: null
         """
-        tasks.initiate_africas_talking_checkout.delay(
-            self.api_key, checkout_transaction
-        )
+        tasks.initiate_africas_talking_mobile_checkout.delay(self.api_key, mobile_checkout_transaction)
 
-    def business_to_business_transaction(self, b2b_transaction: Optional[Dict] = None):
-        """This function creates a task for sending a B2B post request.
+    def initiate_business_to_business_transaction(self, business_to_business_transaction: Optional[Dict] = None):
+        """This function calls the task necessary to perform a business to business transaction.
 
-        :param b2b_transaction: B2B transaction object
+        :param business_to_business_transaction: B2B transaction object
         :return: null
         """
-        tasks.initiate_africas_talking_business_to_business_transaction.delay(self.api_key, b2b_transaction)
+        tasks.initiate_africas_talking_business_to_business_transaction.delay(self.api_key,
+                                                                              business_to_business_transaction)
 
-    def business_to_consumer_transaction(self, b2c_transaction: Optional[Dict] = None):
-        """This function creates a task for sending a B2C post request.
+    def initiate_business_to_consumer_transaction(self, business_to_consumer_transaction: Optional[Dict] = None):
+        """This function calls the task necessary to perform a business to consumer transaction.
 
-        :param b2c_transaction: B2C transaction object
+        :param business_to_consumer_transaction: B2C transaction object
         :return: null
         """
-        tasks.initiate_africas_talking_business_to_consumer_transaction.delay(self.api_key, b2c_transaction)
+        tasks.initiate_africas_talking_business_to_consumer_transaction.delay(self.api_key,
+                                                                              business_to_consumer_transaction)
 
-    def wallet_balance_request(self):
+    def initiate_wallet_balance_request(self):
         """This function creates a task for sending a wallet balance query."""
         tasks.initiate_africas_talking_wallet_balance_request.delay(self.api_key, self.username)

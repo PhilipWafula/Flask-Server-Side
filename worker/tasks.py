@@ -43,9 +43,7 @@ def send_email(mail_sender: str, email_recipients: list, subject: str, html_body
 
 
 @celery.task
-def initiate_africas_talking_checkout(
-    api_key: str, checkout_transaction: Optional[Dict] = None
-):
+def initiate_africas_talking_mobile_checkout(api_key: str, checkout_transaction: Optional[Dict] = None):
     """Mobile checkout post request task.
 
     :param api_key: Africa's Talking access token
@@ -67,7 +65,7 @@ def initiate_africas_talking_checkout(
         task_logger.error(res.content)
     except Exception as exception:
         task_logger.error(
-            f"An error occurred initiating africas talking checkout: {exception}"
+            f"An error occurred initiating a mobile checkout transaction with AfricasTalking: {exception}"
         )
 
 
@@ -94,16 +92,17 @@ def initiate_africas_talking_business_to_business_transaction(api_key: str, b2b_
         )
     except Exception as exception:
         task_logger.error(
-            f"An error occurred initiating africas talking b2b: {exception}"
+            f"An error occurred initiating a business to business transaction with AfricasTalking: {exception}"
         )
 
 
 @celery.task
-def initiate_africas_talking_business_to_consumer_transaction(api_key: str, b2c_transaction: Optional[Dict] = None):
+def initiate_africas_talking_business_to_consumer_transaction(api_key: str,
+                                                              business_to_consumer: Optional[Dict] = None):
     """B2C post request task.
 
     :param api_key: Africa's Talking access token
-    :param b2c_transaction: The transaction json body
+    :param business_to_consumer: The transaction json body
     :return: null
     """
 
@@ -117,11 +116,11 @@ def initiate_africas_talking_business_to_consumer_transaction(api_key: str, b2c_
                 "Content-Type": "application/json",
             },
             timeout=5,
-            json=b2c_transaction,
+            json=business_to_consumer,
         )
     except Exception as exception:
         task_logger.error(
-            f"An error occurred initiating africas talking b2c: {exception}"
+            f"An error occurred initiating a business to consumer transaction with AfricasTalking: {exception}"
         )
 
 
@@ -148,5 +147,5 @@ def initiate_africas_talking_wallet_balance_request(api_key: str, username: str)
         )
     except Exception as exception:
         task_logger.error(
-            f"An error occurred initiating africas talking wallet balance: {exception}"
+            f"An error occurred initiating a wallet balance request with AfricasTalking: {exception}"
         )

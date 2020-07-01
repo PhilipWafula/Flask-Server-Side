@@ -169,7 +169,7 @@ def create_blacklisted_token(activated_admin_user):
 
 
 @pytest.fixture(autouse=True)
-def example_checkout_transaction_data():
+def mobile_checkout_transaction():
     """Fixture for mocking checkout transaction data."""
     return {
         "amount": 10000.00,
@@ -182,7 +182,7 @@ def example_checkout_transaction_data():
 
 
 @pytest.fixture(autouse=True)
-def example_b2b_transaction_data():
+def business_to_business_transaction():
     """Fixture for mocking b2b transaction data."""
     return {
         "amount": 10.00,
@@ -197,7 +197,7 @@ def example_b2b_transaction_data():
 
 
 @pytest.fixture(autouse=True)
-def example_b2c_transaction_data():
+def business_to_consumer_transaction():
     """Fixture for mocking b2c transaction data."""
     return {
         "productName": config.AFRICASTALKING_PRODUCT_NAME,
