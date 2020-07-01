@@ -2,8 +2,8 @@ import pytest
 import os
 import sys
 
-if os.environ["DEPLOYMENT_NAME"] != "TESTING":
-    os.environ["DEPLOYMENT_NAME"] = "DOCKER"
+if os.environ.get('DEPLOYMENT_NAME') != 'DOCKER':
+    os.environ['DEPLOYMENT_NAME'] = "TESTING"
 
 if __name__ == "__main__":
 

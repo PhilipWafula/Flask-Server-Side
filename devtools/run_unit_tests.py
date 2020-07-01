@@ -2,8 +2,8 @@ import pytest
 import os
 import sys
 
-if os.environ["DEPLOYMENT_NAME"] != "TESTING":
-    os.environ["DEPLOYMENT_NAME"] = "DOCKER"
+if os.environ.get('DEPLOYMENT_NAME') != 'DOCKER':
+    os.environ['DEPLOYMENT_NAME'] = "TESTING"
 
 if __name__ == "__main__":
 
@@ -13,5 +13,5 @@ if __name__ == "__main__":
     # Argument definitions here https://gist.github.com/kwmiebach/3fd49612ef7a52b5ce3a
     # or (pytest --help)
 
-    r = pytest.main(["-v", "-x", "-s", "tests/unit"] + sys.argv[1:])
+    r = pytest.main(["-vv", "-x", "-s", "tests/unit"] + sys.argv[1:])
     exit(r)
