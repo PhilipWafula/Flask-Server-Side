@@ -19,7 +19,7 @@ class AfricasTalking:
         self.api_key = api_key
         self.username = username
 
-    def create_mobile_checkout(
+    def create_mobile_checkout_transaction(
         self,
         amount: float,
         phone_number: str,

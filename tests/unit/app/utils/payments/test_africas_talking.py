@@ -33,7 +33,7 @@ def test_create_mobile_checkout_transaction(test_client,
                                             metadata,
                                             provider_channel):
 
-    mobile_checkout_transaction = africas_talking_utility.create_mobile_checkout(
+    mobile_checkout_transaction = africas_talking_utility.create_mobile_checkout_transaction(
         amount=amount,
         phone_number=phone_number,
         product_name=product_name,
