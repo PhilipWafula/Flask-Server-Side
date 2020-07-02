@@ -149,7 +149,15 @@ def test_create_business_to_business_transaction(test_client,
                              (75.0, "+254712345678", "Sera", "KES", None, 'Jon Snow', None, None),
                              (98.0, "+254712345678", "Sera", "KES", None, None, "654321", None),
                              (365.0, "+254712345678", "Sera", "KES", None, None, None, "SalaryPayment"),
+                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, "Sansa Stark", None, None),
+                             (650.0, "+254712345678", "Sera", "KES", None, "Sansa Stark", "123456", None),
+                             (650.0, "+254712345678", "Sera", "KES", None, None, "123456", "PromotionPayment"),
+                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, "Sansa Stark", "123456", None),
+                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, "Sansa Stark", None, "PromotionPayment"),
+                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, None, "123456", "PromotionPayment"),
+                             (650.0, "+254712345678", "Sera", "KES", None, "Sansa Stark", "123456", "PromotionPayment"),
                              (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, "Sansa Stark", "123456", "PromotionPayment"),
+                             (650.0, "+254712345678", "Sera", "KES", None, None, None, None),
                          ])
 def test_create_business_to_consumer_transaction(test_client,
                                                  amount,
@@ -213,6 +221,94 @@ def test_create_business_to_consumer_transaction(test_client,
                 "amount": amount,
                 "phoneNumber": phone_number,
                 "currencyCode": currency_code,
+                "reason": reason
+            }]
+        }
+    elif metadata and name and not provider_channel and not reason:
+        assert business_to_consumer_transaction == {
+            "productName": product_name,
+            "username": config.AFRICASTALKING_USERNAME,
+            "recipients": [{
+                "amount": amount,
+                "phoneNumber": phone_number,
+                "currencyCode": currency_code,
+                "metadata": metadata,
+                "name": name,
+            }]
+        }
+    elif name and provider_channel and not metadata and not reason:
+        assert business_to_consumer_transaction == {
+            "productName": product_name,
+            "username": config.AFRICASTALKING_USERNAME,
+            "recipients": [{
+                "amount": amount,
+                "phoneNumber": phone_number,
+                "currencyCode": currency_code,
+                "name": name,
+                "providerChannel": provider_channel,
+            }]
+        }
+    elif provider_channel and reason and not metadata and not name:
+        assert business_to_consumer_transaction == {
+            "productName": product_name,
+            "username": config.AFRICASTALKING_USERNAME,
+            "recipients": [{
+                "amount": amount,
+                "phoneNumber": phone_number,
+                "currencyCode": currency_code,
+                "providerChannel": provider_channel,
+                "reason": reason
+            }]
+        }
+    elif metadata and name and provider_channel and not reason:
+        assert business_to_consumer_transaction == {
+            "productName": product_name,
+            "username": config.AFRICASTALKING_USERNAME,
+            "recipients": [{
+                "amount": amount,
+                "phoneNumber": phone_number,
+                "currencyCode": currency_code,
+                "metadata": metadata,
+                "name": name,
+                "providerChannel": provider_channel,
+            }]
+        }
+    elif metadata and name and reason and not provider_channel:
+        assert business_to_consumer_transaction == {
+            "productName": product_name,
+            "username": config.AFRICASTALKING_USERNAME,
+            "recipients": [{
+                "amount": amount,
+                "phoneNumber": phone_number,
+                "currencyCode": currency_code,
+                "metadata": metadata,
+                "name": name,
+                "reason": reason
+            }]
+        }
+    elif metadata and provider_channel and reason and not name:
+        assert business_to_consumer_transaction == {
+            "productName": product_name,
+            "username": config.AFRICASTALKING_USERNAME,
+            "recipients": [{
+                "amount": amount,
+                "phoneNumber": phone_number,
+                "currencyCode": currency_code,
+                "metadata": metadata,
+                "providerChannel": provider_channel,
+                "reason": reason
+            }]
+        }
+    elif name and provider_channel and reason and not metadata:
+        assert business_to_consumer_transaction == {
+            "productName": product_name,
+            "username": config.AFRICASTALKING_USERNAME,
+            "recipients": [{
+                "amount": amount,
+                "phoneNumber": phone_number,
+                "currencyCode": currency_code,
+                "name": name,
+                "providerChannel": provider_channel,
                 "reason": reason
             }]
         }
