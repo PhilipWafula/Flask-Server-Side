@@ -1,7 +1,7 @@
 def organization_not_found(organization_id: int):
     response = {
         "error": {
-            "message": "Organization with id {} not found.".format(organization_id),
+            "message": f"Organization with id {organization_id} not found.",
             "status": "Fail",
         }
     }
@@ -21,7 +21,7 @@ def organization_id_not_provided():
 def user_not_found(user_id: int):
     response = {
         "error": {
-            "message": "User with id {} not found.".format(user_id),
+            "message": f"User with id {user_id} not found.",
             "status": "Fail",
         }
     }
@@ -41,7 +41,7 @@ def user_id_not_provided():
 def invalid_request_on_validation(message: str):
     response = {
         "error": {
-            "message": "Invalid request: {}".format(message),
+            "message": f"Invalid request: {message}",
             "status": "Fail"
         }
     }
@@ -66,20 +66,10 @@ def otp_resent_successfully():
     return response, 200
 
 
-def invalid_amount_type(amount: float):
+def invalid_amount_type(amount: any):
     response = {
         "error": {
-            "message": f"Incorrect amount type: {type(amount)}",
-            "status": "Fail",
-        }
-    }
-    return response, 422
-
-
-def invalid_phone_number_format(phone_number: str):
-    response = {
-        "error": {
-            "message": f"Incorrect phone number format: {phone_number}",
+            "message": f"Incorrect amount type: {type(amount)}.",
             "status": "Fail",
         }
     }
@@ -89,7 +79,7 @@ def invalid_phone_number_format(phone_number: str):
 def unsupported_currency_code(currency_code: str):
     response = {
         "error": {
-            "message": f"Unsupported currency code: {currency_code}",
+            "message": f"Unsupported currency code: {currency_code}.",
             "status": "Fail",
         }
     }
@@ -99,7 +89,7 @@ def unsupported_currency_code(currency_code: str):
 def unsupported_provider(provider: str):
     response = {
         "error": {
-            "message": f"Unsupported provider: {provider}",
+            "message": f"Unsupported provider: {provider}.",
             "status": "Fail"
         }
     }
@@ -109,7 +99,7 @@ def unsupported_provider(provider: str):
 def unsupported_transfer_type(transfer_type: str):
     response = {
         "error": {
-            "message": f"Unsupported transfer type: {transfer_type}",
+            "message": f"Unsupported transfer type: {transfer_type}.",
             "status": "Fail",
         }
     }
@@ -119,7 +109,7 @@ def unsupported_transfer_type(transfer_type: str):
 def unsupported_reason(reason: str):
     response = {
         "error": {
-            "message": f"Unsupported reason: {reason}",
+            "message": f"Unsupported reason: {reason}.",
             "status": "Fail"
         }
     }
