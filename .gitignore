@@ -16,3 +16,7 @@ config/secret/common_secrets.ini
 config/secret/development_secrets.ini
 config/secret/docker_secrets.ini
 config/secret/testing_secrets.ini
+
+# coverage files
+.coverage
+coverage.xml
