@@ -114,3 +114,23 @@ def unsupported_reason(reason: str):
         }
     }
     return response, 422
+
+
+def invalid_payment_type(payment_type: str):
+    response = {
+        "error": {
+            "message": f"Invalid payment type: {payment_type}",
+            "status": "Fail"
+        }
+    }
+    return response, 422
+
+
+def invalid_provider_type(provider_type: str):
+    response = {
+        "error": {
+            "message": f"Invalid provider type: {provider_type}",
+            "status": "Fail"
+        }
+    }
+    return response, 422
