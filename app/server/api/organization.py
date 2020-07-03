@@ -1,3 +1,5 @@
+from jsonschema.exceptions import ValidationError
+
 from flask import Blueprint
 from flask import jsonify
 from flask import make_response
@@ -11,10 +13,13 @@ from app.server.schemas.organization import organizations_schema
 from app.server.templates.responses import (
     organization_id_not_provided,
     organization_not_found,
+    invalid_request_on_validation,
 )
 from app.server.utils.auth import requires_auth
 from app.server.utils.organization import process_create_or_update_organization_request
 from app.server.utils.query import paginate_query
+from app.server.utils.validation import validate_request
+from app.server.schemas.json.organization import organization_json_schema
 
 organization_blueprint = Blueprint("organization", __name__)
 
@@ -33,6 +38,14 @@ class OrganizationAPI(MethodView):
 
     def post(self):
         organization_data = request.get_json()
+
+        # verify request
+        try:
+            validate_request(instance=organization_data, schema=organization_json_schema)
+
+        except ValidationError as error:
+            response, status_code = invalid_request_on_validation(error.message)
+            return response, status_code
 
         response, status_code = process_create_or_update_organization_request(
             organization_data
