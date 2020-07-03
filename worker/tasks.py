@@ -43,7 +43,7 @@ def send_email(mail_sender: str, email_recipients: list, subject: str, html_body
 
 
 @celery.task
-def initiate_africas_talking_mobile_checkout(api_key: str, checkout_transaction: Optional[Dict] = None):
+def initiate_africas_talking_mobile_checkout_transaction(api_key: str, checkout_transaction: Optional[Dict] = None):
     """Mobile checkout post request task.
 
     :param api_key: Africa's Talking access token

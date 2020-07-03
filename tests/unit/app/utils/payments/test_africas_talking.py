@@ -338,10 +338,11 @@ def test_create_business_to_consumer_transaction(test_client,
         }
 
 
-def test_initiate_mobile_checkout(mocker, mobile_checkout_transaction):
+def test_initiate_mobile_checkout_transaction(mocker, mobile_checkout_transaction):
     initiate_mobile_checkout_transaction = mocker.MagicMock()
-    mocker.patch('worker.tasks.initiate_africas_talking_mobile_checkout.delay', initiate_mobile_checkout_transaction)
-    africas_talking_utility.initiate_mobile_checkout(mobile_checkout_transaction)
+    mocker.patch(
+        'worker.tasks.initiate_africas_talking_mobile_checkout_transaction.delay', initiate_mobile_checkout_transaction)
+    africas_talking_utility.initiate_mobile_checkout_transaction(mobile_checkout_transaction)
     initiate_mobile_checkout_transaction.assert_called_with(config.AFRICASTALKING_API_KEY, mobile_checkout_transaction)
 
 

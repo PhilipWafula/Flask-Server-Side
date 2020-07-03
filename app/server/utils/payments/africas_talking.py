@@ -204,13 +204,13 @@ class AfricasTalking:
 
         return business_to_consumer_transaction
 
-    def initiate_mobile_checkout(self, mobile_checkout_transaction: Optional[Dict] = None):
+    def initiate_mobile_checkout_transaction(self, mobile_checkout_transaction: Optional[Dict] = None):
         """This functions calls the task necessary to perform a checkout transaction.
 
         :param mobile_checkout_transaction: checkout transaction object
         :return: null
         """
-        tasks.initiate_africas_talking_mobile_checkout.delay(self.api_key, mobile_checkout_transaction)
+        tasks.initiate_africas_talking_mobile_checkout_transaction.delay(self.api_key, mobile_checkout_transaction)
 
     def initiate_business_to_business_transaction(self, business_to_business_transaction: Optional[Dict] = None):
         """This function calls the task necessary to perform a business to business transaction.
