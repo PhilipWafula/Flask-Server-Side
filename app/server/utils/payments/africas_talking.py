@@ -1,5 +1,4 @@
 # system imports
-import re
 from typing import Dict, Optional
 
 # third party import
@@ -232,4 +231,9 @@ class AfricasTalking:
 
     def initiate_wallet_balance_request(self):
         """This function creates a task for sending a wallet balance query."""
-        tasks.initiate_africas_talking_wallet_balance_request.delay(self.api_key, self.username)
+        kwargs = {
+            'api_key': self.api_key,
+            'username': self.username,
+        }
+        result = tasks.initiate_africas_talking_wallet_balance_request.apply_async(kwargs=kwargs, ignore_result=False)
+        return result.get()
