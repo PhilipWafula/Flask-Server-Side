@@ -135,7 +135,7 @@ def initiate_africas_talking_wallet_balance_request(api_key: str, username: str)
 
     try:
         # send query
-        requests.get(
+        result = requests.get(
             url=config.AFRICAS_TALKING_WALLET_BALANCE,
             headers={
                 "Accept": "application/json",
@@ -145,6 +145,19 @@ def initiate_africas_talking_wallet_balance_request(api_key: str, username: str)
             params={"username": username},
             timeout=5,
         )
+        # check result
+        if result.status_code != 200:
+            message = result.text
+            response = {
+                'error': {
+                    'message': message,
+                    'status': 'Fail'
+                }
+            }
+            return response, result.status_code
+        else:
+            return result.json(), result.status_code
+
     except Exception as exception:
         task_logger.error(
             f"An error occurred initiating a wallet balance request with AfricasTalking: {exception}"
