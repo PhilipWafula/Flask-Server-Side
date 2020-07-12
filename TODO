@@ -1,4 +1,4 @@
 Update Postman collections
 Adds documentation for APIS
 Add hook management utility
-Harden Github CI/CD flow
+Investigate whether getting a response from a celery task is a wise approach to fetching wallet balances.
