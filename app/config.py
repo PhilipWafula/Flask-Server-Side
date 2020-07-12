@@ -6,7 +6,9 @@ from pathlib import Path
 
 API_VERSION = "0.0.1"
 
-log = logging.getLogger(__file__)
+env_loglevel = os.environ.get('LOGLEVEL', 'DEBUG')
+logging.basicConfig(level=env_loglevel)
+log = logging.getLogger(__name__)
 
 # get absolute path for config file [/flask-server-side/config]
 CONFIG_FILE_DIRECTORY = Path(os.path.dirname(__file__)).parent
