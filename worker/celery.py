@@ -4,7 +4,10 @@ from celery import Celery
 def make_celery(app):
     app = app
     celery = Celery(
-        app.import_name, backend=app.config["REDIS_URL"], broker=app.config["REDIS_URL"]
+        app.import_name,
+        backend=app.config["REDIS_URL"],
+        broker=app.config["REDIS_URL"],
+        task_serializer='json'
     )
     celery.conf.update(app.config)
     TaskBase = celery.Task
