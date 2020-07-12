@@ -126,10 +126,10 @@ def invalid_payment_type(payment_type: str):
     return response, 422
 
 
-def invalid_provider_type(provider_type: str):
+def invalid_payments_service_provider(payments_service_provider: str):
     response = {
         "error": {
-            "message": f"Invalid provider type: {provider_type}",
+            "message": f"Invalid payments service provider: {payments_service_provider}",
             "status": "Fail"
         }
     }
