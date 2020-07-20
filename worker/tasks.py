@@ -43,16 +43,17 @@ def send_email(mail_sender: str, email_recipients: list, subject: str, html_body
 
 
 @celery.task
-def initiate_africas_talking_mobile_checkout_transaction(api_key: str, checkout_transaction: Optional[Dict] = None):
+def initiate_africas_talking_mobile_checkout_transaction(api_key: str,
+                                                         mobile_checkout_transaction: Optional[Dict] = None):
     """Mobile checkout post request task.
 
     :param api_key: Africa's Talking access token
-    :param checkout_transaction: The transaction json body
+    :param mobile_checkout_transaction: The transaction json body
     :return: null
     """
     # send payments
     try:
-        res = requests.post(
+        result = requests.post(
             url=config.AFRICASTALKING_MOBILE_CHECKOUT_URL,
             headers={
                 "Accept": "application/json",
@@ -60,27 +61,46 @@ def initiate_africas_talking_mobile_checkout_transaction(api_key: str, checkout_
                 "Content-Type": "application/json",
             },
             timeout=5,
-            json=checkout_transaction,
+            json=mobile_checkout_transaction,
         )
-        task_logger.error(res.content)
+
+        if result.status_code != 201:
+            message = result.text
+            response = {
+                'error': {
+                    'message': message,
+                    'status': 'Fail'
+                }
+            }
+            return response, result.status_code
+        else:
+            return result.json(), result.status_code
     except Exception as exception:
+        response = {
+            'error': {
+                'message': f'{exception}',
+                'status': 'Fail'
+            }
+        }
         task_logger.error(
             f"An error occurred initiating a mobile checkout transaction with AfricasTalking: {exception}"
         )
+        return response, 500
 
 
 @celery.task
-def initiate_africas_talking_business_to_business_transaction(api_key: str, b2b_transaction: Optional[Dict] = None):
+def initiate_africas_talking_business_to_business_transaction(api_key: str,
+                                                              business_to_business_transaction: Optional[Dict] = None):
     """B2B post request task.
 
     :param api_key: Africa's Talking access token
-    :param b2b_transaction: The transaction json body
+    :param business_to_business_transaction: The transaction json body
     :return: null
     """
 
     try:
         # send payments
-        requests.post(
+        result = requests.post(
             url=config.AFRICASTALKING_MOBILE_B2B_URL,
             headers={
                 "Accept": "application/json",
@@ -88,27 +108,45 @@ def initiate_africas_talking_business_to_business_transaction(api_key: str, b2b_
                 "Content-Type": "application/json",
             },
             timeout=5,
-            json=b2b_transaction,
+            json=business_to_business_transaction,
         )
+        if result.status_code != 201:
+            message = result.text
+            response = {
+                'error': {
+                    'message': message,
+                    'status': 'Fail'
+                }
+            }
+            return response, result.status_code
+        else:
+            return result.json(), result.status_code
     except Exception as exception:
+        response = {
+            'error': {
+                'message': f'{exception}',
+                'status': 'Fail'
+            }
+        }
         task_logger.error(
             f"An error occurred initiating a business to business transaction with AfricasTalking: {exception}"
         )
+        return response, 500
 
 
 @celery.task
 def initiate_africas_talking_business_to_consumer_transaction(api_key: str,
-                                                              business_to_consumer: Optional[Dict] = None):
+                                                              business_to_consumer_transaction: Optional[Dict] = None):
     """B2C post request task.
 
     :param api_key: Africa's Talking access token
-    :param business_to_consumer: The transaction json body
+    :param business_to_consumer_transaction: The transaction json body
     :return: null
     """
 
     try:
         # send payments
-        requests.post(
+        result = requests.post(
             url=config.AFRICASTALKING_MOBILE_B2C_URL,
             headers={
                 "Accept": "application/json",
@@ -116,12 +154,31 @@ def initiate_africas_talking_business_to_consumer_transaction(api_key: str,
                 "Content-Type": "application/json",
             },
             timeout=5,
-            json=business_to_consumer,
+            json=business_to_consumer_transaction,
         )
+
+        if result.status_code != 201:
+            message = result.text
+            response = {
+                'error': {
+                    'message': message,
+                    'status': 'Fail'
+                }
+            }
+            return response, result.status_code
+        else:
+            return result.json(), result.status_code
     except Exception as exception:
+        response = {
+            'error': {
+                'message': f'{exception}',
+                'status': 'Fail'
+            }
+        }
         task_logger.error(
             f"An error occurred initiating a business to consumer transaction with AfricasTalking: {exception}"
         )
+        return response, 500
 
 
 @celery.task
@@ -159,6 +216,13 @@ def initiate_africas_talking_wallet_balance_request(api_key: str, username: str)
             return result.json(), result.status_code
 
     except Exception as exception:
+        response = {
+            'error': {
+                'message': f'{exception}',
+                'status': 'Fail'
+            }
+        }
         task_logger.error(
             f"An error occurred initiating a wallet balance request with AfricasTalking: {exception}"
         )
+        return response, 500

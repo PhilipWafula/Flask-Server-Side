@@ -46,12 +46,12 @@ class AfricasTalking:
                 amount = float(amount)
             except ValueError:
                 response, status_code = responses.invalid_amount_type(amount)
-                return make_response(jsonify(response, status_code))
+                return response, status_code
 
         # check that currency is in supported currency codes
         if currency_code not in constants.AFRICAS_TALKING_CURRENCY_CODES:
             response, status_code = responses.unsupported_currency_code(currency_code)
-            return make_response(jsonify(response), status_code)
+            return response, status_code
 
         mobile_checkout_transaction = {
             "amount": amount,
@@ -67,7 +67,7 @@ class AfricasTalking:
         if provider_channel:
             mobile_checkout_transaction["providerChannel"] = provider_channel
 
-        return mobile_checkout_transaction
+        return mobile_checkout_transaction, 201
 
     def create_business_to_business_transaction(
         self,
@@ -98,22 +98,22 @@ class AfricasTalking:
                 amount = float(amount)
             except ValueError:
                 response, status_code = responses.invalid_amount_type(amount)
-                return make_response(jsonify(response, status_code))
+                return response, status_code
 
         # check that provider channel is in supported providers
         if provider not in constants.AFRICAS_TALKING_PROVIDERS:
             response, status_code = responses.unsupported_provider(provider)
-            return make_response(jsonify(response), status_code)
+            return response, status_code
 
         # check that transfer type is in supported transfer types
         if transfer_type not in constants.AFRICAS_TALKING_TRANSFER_TYPES:
             response, status_code = responses.unsupported_transfer_type(transfer_type)
-            return make_response(jsonify(response), status_code)
+            return response, status_code
 
         # check that currency is in supported currency codes
         if currency_code not in constants.AFRICAS_TALKING_CURRENCY_CODES:
             response, status_code = responses.unsupported_currency_code(currency_code)
-            return make_response(jsonify(response), status_code)
+            return response, status_code
 
         business_to_business_transaction = {
             "amount": amount,
@@ -129,7 +129,7 @@ class AfricasTalking:
         if metadata:
             business_to_business_transaction["metadata"] = metadata
 
-        return business_to_business_transaction
+        return business_to_business_transaction, 201
 
     def create_business_to_consumer_transaction(
         self,
@@ -163,17 +163,17 @@ class AfricasTalking:
                 amount = float(amount)
             except ValueError:
                 response, status_code = responses.invalid_amount_type(amount)
-                return make_response(jsonify(response, status_code))
+                return response, status_code
 
         # check that currency is in supported currency codes
         if currency_code not in constants.AFRICAS_TALKING_CURRENCY_CODES:
             response, status_code = responses.unsupported_currency_code(currency_code)
-            return make_response(jsonify(response), status_code)
+            return response, status_code
 
         # check that reason is in supported reasons
         if reason and reason not in constants.AFRICAS_TALKING_REASONS:
             response, status_code = responses.unsupported_reason(reason)
-            return make_response(jsonify(response), status_code)
+            return response, status_code
 
         recipient = {
             "amount": amount,
@@ -201,7 +201,7 @@ class AfricasTalking:
             "recipients": recipients,
         }
 
-        return business_to_consumer_transaction
+        return business_to_consumer_transaction, 201
 
     def initiate_mobile_checkout_transaction(self, mobile_checkout_transaction: Optional[Dict] = None):
         """This functions calls the task necessary to perform a checkout transaction.
@@ -209,7 +209,14 @@ class AfricasTalking:
         :param mobile_checkout_transaction: checkout transaction object
         :return: null
         """
-        tasks.initiate_africas_talking_mobile_checkout_transaction.delay(self.api_key, mobile_checkout_transaction)
+        kwargs = {
+            'api_key': self.api_key,
+            'mobile_checkout_transaction': mobile_checkout_transaction
+        }
+        result = tasks.initiate_africas_talking_mobile_checkout_transaction.apply_async(kwargs=kwargs,
+                                                                                        ignore_result=False)
+
+        return result.get()
 
     def initiate_business_to_business_transaction(self, business_to_business_transaction: Optional[Dict] = None):
         """This function calls the task necessary to perform a business to business transaction.
@@ -217,8 +224,13 @@ class AfricasTalking:
         :param business_to_business_transaction: B2B transaction object
         :return: null
         """
-        tasks.initiate_africas_talking_business_to_business_transaction.delay(self.api_key,
-                                                                              business_to_business_transaction)
+        kwargs = {
+            'api_key': self.api_key,
+            'business_to_business_transaction': business_to_business_transaction,
+        }
+        result = tasks.initiate_africas_talking_business_to_business_transaction.apply_async(kwargs=kwargs,
+                                                                                             ignore_result=False)
+        return result.get()
 
     def initiate_business_to_consumer_transaction(self, business_to_consumer_transaction: Optional[Dict] = None):
         """This function calls the task necessary to perform a business to consumer transaction.
@@ -226,8 +238,13 @@ class AfricasTalking:
         :param business_to_consumer_transaction: B2C transaction object
         :return: null
         """
-        tasks.initiate_africas_talking_business_to_consumer_transaction.delay(self.api_key,
-                                                                              business_to_consumer_transaction)
+        kwargs = {
+            'api_key': self.api_key,
+            'business_to_consumer_transaction': business_to_consumer_transaction
+        }
+        result = tasks.initiate_africas_talking_business_to_consumer_transaction.apply_async(kwargs=kwargs,
+                                                                                             ignore_result=False)
+        return result.get()
 
     def initiate_wallet_balance_request(self):
         """This function creates a task for sending a wallet balance query."""
