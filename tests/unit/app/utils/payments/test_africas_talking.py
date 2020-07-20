@@ -33,7 +33,7 @@ def test_create_mobile_checkout_transaction(test_client,
                                             metadata,
                                             provider_channel):
 
-    mobile_checkout_transaction = africas_talking_utility.create_mobile_checkout_transaction(
+    mobile_checkout_transaction, status_code = africas_talking_utility.create_mobile_checkout_transaction(
         amount=amount,
         phone_number=phone_number,
         product_name=product_name,
@@ -78,6 +78,7 @@ def test_create_mobile_checkout_transaction(test_client,
             "username": config.AFRICASTALKING_USERNAME,
             "currencyCode": currency_code
         }
+        assert status_code == 201
 
 
 @pytest.mark.parametrize("amount,"
@@ -101,7 +102,7 @@ def test_create_business_to_business_transaction(test_client,
                                                  transfer_type,
                                                  currency_code,
                                                  metadata):
-    business_to_business_transaction = africas_talking_utility.create_business_to_business_transaction(
+    business_to_business_transaction, status_code = africas_talking_utility.create_business_to_business_transaction(
         amount=amount,
         destination_account=destination_account,
         destination_channel=destination_channel,
@@ -134,6 +135,8 @@ def test_create_business_to_business_transaction(test_client,
             "username": config.AFRICASTALKING_USERNAME,
             "currencyCode": currency_code
         }
+
+    assert status_code == 201
 
 
 @pytest.mark.parametrize("amount,"
@@ -169,7 +172,7 @@ def test_create_business_to_consumer_transaction(test_client,
                                                  provider_channel,
                                                  reason):
 
-    business_to_consumer_transaction = africas_talking_utility.create_business_to_consumer_transaction(
+    business_to_consumer_transaction, status_code = africas_talking_utility.create_business_to_consumer_transaction(
         amount=amount,
         phone_number=phone_number,
         product_name=product_name,
@@ -336,38 +339,53 @@ def test_create_business_to_consumer_transaction(test_client,
                 "currencyCode": currency_code
             }]
         }
+    assert status_code == 201
 
 
 def test_initiate_mobile_checkout_transaction(mocker, mobile_checkout_transaction):
     initiate_mobile_checkout_transaction = mocker.MagicMock()
     mocker.patch(
-        'worker.tasks.initiate_africas_talking_mobile_checkout_transaction.delay', initiate_mobile_checkout_transaction)
+        'worker.tasks.initiate_africas_talking_mobile_checkout_transaction.apply_async',
+        initiate_mobile_checkout_transaction)
     africas_talking_utility.initiate_mobile_checkout_transaction(mobile_checkout_transaction)
-    initiate_mobile_checkout_transaction.assert_called_with(config.AFRICASTALKING_API_KEY, mobile_checkout_transaction)
+    kwargs = {
+        'api_key': config.AFRICASTALKING_API_KEY,
+        'mobile_checkout_transaction': mobile_checkout_transaction
+    }
+    initiate_mobile_checkout_transaction.assert_called_with(kwargs=kwargs, ignore_result=False)
 
 
 def test_initiate_business_to_business_transaction(mocker, business_to_business_transaction):
     initiate_business_to_business_transaction = mocker.MagicMock()
-    mocker.patch('worker.tasks.initiate_africas_talking_business_to_business_transaction.delay',
+    mocker.patch('worker.tasks.initiate_africas_talking_business_to_business_transaction.apply_async',
                  initiate_business_to_business_transaction)
     africas_talking_utility.initiate_business_to_business_transaction(business_to_business_transaction)
-    initiate_business_to_business_transaction.assert_called_with(config.AFRICASTALKING_API_KEY,
-                                                                 business_to_business_transaction)
+    kwargs = {
+        'api_key': config.AFRICASTALKING_API_KEY,
+        'business_to_business_transaction': business_to_business_transaction
+    }
+    initiate_business_to_business_transaction.assert_called_with(kwargs=kwargs, ignore_result=False)
 
 
 def test_initiate_business_to_consumer_transaction(mocker, business_to_consumer_transaction):
     initiate_business_to_consumer_transaction = mocker.MagicMock()
-    mocker.patch('worker.tasks.initiate_africas_talking_business_to_consumer_transaction.delay',
+    mocker.patch('worker.tasks.initiate_africas_talking_business_to_consumer_transaction.apply_async',
                  initiate_business_to_consumer_transaction)
     africas_talking_utility.initiate_business_to_consumer_transaction(business_to_consumer_transaction)
-    initiate_business_to_consumer_transaction.assert_called_with(config.AFRICASTALKING_API_KEY,
-                                                                 business_to_consumer_transaction)
+    kwargs = {
+        'api_key': config.AFRICASTALKING_API_KEY,
+        'business_to_consumer_transaction': business_to_consumer_transaction
+    }
+    initiate_business_to_consumer_transaction.assert_called_with(kwargs=kwargs, ignore_result=False)
 
 
 def test_initiate_wallet_balance_request(mocker):
     initiate_wallet_balance_request = mocker.MagicMock()
-    mocker.patch('worker.tasks.initiate_africas_talking_wallet_balance_request.delay',
+    mocker.patch('worker.tasks.initiate_africas_talking_wallet_balance_request.apply_async',
                  initiate_wallet_balance_request)
     africas_talking_utility.initiate_wallet_balance_request()
-    initiate_wallet_balance_request.assert_called_with(config.AFRICASTALKING_API_KEY,
-                                                       config.AFRICASTALKING_USERNAME)
+    kwargs = {
+        'api_key': config.AFRICASTALKING_API_KEY,
+        'username': config.AFRICASTALKING_USERNAME
+    }
+    initiate_wallet_balance_request.assert_called_with(kwargs=kwargs, ignore_result=False)
