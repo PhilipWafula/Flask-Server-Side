@@ -53,7 +53,7 @@ def initiate_africas_talking_mobile_checkout_transaction(api_key: str,
     """
     # send payments
     try:
-        result = requests.post(
+        requests.post(
             url=config.AFRICASTALKING_MOBILE_CHECKOUT_URL,
             headers={
                 "Accept": "application/json",
@@ -63,29 +63,10 @@ def initiate_africas_talking_mobile_checkout_transaction(api_key: str,
             timeout=5,
             json=mobile_checkout_transaction,
         )
-
-        if result.status_code != 201:
-            message = result.text
-            response = {
-                'error': {
-                    'message': message,
-                    'status': 'Fail'
-                }
-            }
-            return response, result.status_code
-        else:
-            return result.json(), result.status_code
     except Exception as exception:
-        response = {
-            'error': {
-                'message': f'{exception}',
-                'status': 'Fail'
-            }
-        }
         task_logger.error(
             f"An error occurred initiating a mobile checkout transaction with AfricasTalking: {exception}"
         )
-        return response, 500
 
 
 @celery.task
@@ -99,8 +80,7 @@ def initiate_africas_talking_business_to_business_transaction(api_key: str,
     """
 
     try:
-        # send payments
-        result = requests.post(
+        requests.post(
             url=config.AFRICASTALKING_MOBILE_B2B_URL,
             headers={
                 "Accept": "application/json",
@@ -110,28 +90,11 @@ def initiate_africas_talking_business_to_business_transaction(api_key: str,
             timeout=5,
             json=business_to_business_transaction,
         )
-        if result.status_code != 201:
-            message = result.text
-            response = {
-                'error': {
-                    'message': message,
-                    'status': 'Fail'
-                }
-            }
-            return response, result.status_code
-        else:
-            return result.json(), result.status_code
+
     except Exception as exception:
-        response = {
-            'error': {
-                'message': f'{exception}',
-                'status': 'Fail'
-            }
-        }
         task_logger.error(
             f"An error occurred initiating a business to business transaction with AfricasTalking: {exception}"
         )
-        return response, 500
 
 
 @celery.task
@@ -146,7 +109,7 @@ def initiate_africas_talking_business_to_consumer_transaction(api_key: str,
 
     try:
         # send payments
-        result = requests.post(
+        requests.post(
             url=config.AFRICASTALKING_MOBILE_B2C_URL,
             headers={
                 "Accept": "application/json",
@@ -157,72 +120,7 @@ def initiate_africas_talking_business_to_consumer_transaction(api_key: str,
             json=business_to_consumer_transaction,
         )
 
-        if result.status_code != 201:
-            message = result.text
-            response = {
-                'error': {
-                    'message': message,
-                    'status': 'Fail'
-                }
-            }
-            return response, result.status_code
-        else:
-            return result.json(), result.status_code
     except Exception as exception:
-        response = {
-            'error': {
-                'message': f'{exception}',
-                'status': 'Fail'
-            }
-        }
         task_logger.error(
             f"An error occurred initiating a business to consumer transaction with AfricasTalking: {exception}"
         )
-        return response, 500
-
-
-@celery.task
-def initiate_africas_talking_wallet_balance_request(api_key: str, username: str):
-    """Wallet balance get request task.
-
-    :param api_key: Africa's Talking access token
-    :param username: Africa's Talking username
-    :return: null
-    """
-
-    try:
-        # send query
-        result = requests.get(
-            url=config.AFRICAS_TALKING_WALLET_BALANCE,
-            headers={
-                "Accept": "application/json",
-                "ApiKey": api_key,
-                "Content-Type": "application/json",
-            },
-            params={"username": username},
-            timeout=5,
-        )
-        # check result
-        if result.status_code != 200:
-            message = result.text
-            response = {
-                'error': {
-                    'message': message,
-                    'status': 'Fail'
-                }
-            }
-            return response, result.status_code
-        else:
-            return result.json(), result.status_code
-
-    except Exception as exception:
-        response = {
-            'error': {
-                'message': f'{exception}',
-                'status': 'Fail'
-            }
-        }
-        task_logger.error(
-            f"An error occurred initiating a wallet balance request with AfricasTalking: {exception}"
-        )
-        return response, 500

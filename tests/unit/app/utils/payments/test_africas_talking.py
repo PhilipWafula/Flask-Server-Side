@@ -1,8 +1,8 @@
 # system imports
-from typing import Dict, Optional
 
 # third-party imports
 import pytest
+import requests_mock
 
 # application imports
 from app import config
@@ -32,8 +32,7 @@ def test_create_mobile_checkout_transaction(test_client,
                                             currency_code,
                                             metadata,
                                             provider_channel):
-
-    mobile_checkout_transaction, status_code = africas_talking_utility.create_mobile_checkout_transaction(
+    mobile_checkout_transaction = africas_talking_utility.create_mobile_checkout_transaction(
         amount=amount,
         phone_number=phone_number,
         product_name=product_name,
@@ -78,7 +77,6 @@ def test_create_mobile_checkout_transaction(test_client,
             "username": config.AFRICASTALKING_USERNAME,
             "currencyCode": currency_code
         }
-        assert status_code == 201
 
 
 @pytest.mark.parametrize("amount,"
@@ -91,7 +89,8 @@ def test_create_mobile_checkout_transaction(test_client,
                          "metadata",
                          [
                              (358.0, "9865471", "7845215", "Sera", "Mpesa", "BusinessPayBill", "UGX", None),
-                             (256.5, "7845215", "9865471", "Miradi", "Mpesa", "BusinessBuyGoods", "KES", {'OrderID': '321654987'})
+                             (256.5, "7845215", "9865471", "Miradi", "Mpesa", "BusinessBuyGoods", "KES",
+                              {'OrderID': '321654987'})
                          ])
 def test_create_business_to_business_transaction(test_client,
                                                  amount,
@@ -102,7 +101,7 @@ def test_create_business_to_business_transaction(test_client,
                                                  transfer_type,
                                                  currency_code,
                                                  metadata):
-    business_to_business_transaction, status_code = africas_talking_utility.create_business_to_business_transaction(
+    business_to_business_transaction = africas_talking_utility.create_business_to_business_transaction(
         amount=amount,
         destination_account=destination_account,
         destination_channel=destination_channel,
@@ -136,8 +135,6 @@ def test_create_business_to_business_transaction(test_client,
             "currencyCode": currency_code
         }
 
-    assert status_code == 201
-
 
 @pytest.mark.parametrize("amount,"
                          "phone_number,"
@@ -148,18 +145,24 @@ def test_create_business_to_business_transaction(test_client,
                          "provider_channel,"
                          "reason",
                          [
-                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, None, None, None),
+                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, None, None,
+                              None),
                              (75.0, "+254712345678", "Sera", "KES", None, 'Jon Snow', None, None),
                              (98.0, "+254712345678", "Sera", "KES", None, None, "654321", None),
                              (365.0, "+254712345678", "Sera", "KES", None, None, None, "SalaryPayment"),
-                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, "Sansa Stark", None, None),
+                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, "Sansa Stark",
+                              None, None),
                              (650.0, "+254712345678", "Sera", "KES", None, "Sansa Stark", "123456", None),
                              (650.0, "+254712345678", "Sera", "KES", None, None, "123456", "PromotionPayment"),
-                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, "Sansa Stark", "123456", None),
-                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, "Sansa Stark", None, "PromotionPayment"),
-                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, None, "123456", "PromotionPayment"),
+                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, "Sansa Stark",
+                              "123456", None),
+                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, "Sansa Stark",
+                              None, "PromotionPayment"),
+                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, None, "123456",
+                              "PromotionPayment"),
                              (650.0, "+254712345678", "Sera", "KES", None, "Sansa Stark", "123456", "PromotionPayment"),
-                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, "Sansa Stark", "123456", "PromotionPayment"),
+                             (650.0, "+254712345678", "Sera", "KES", {'TransactionID': 'KLHSN7845120'}, "Sansa Stark",
+                              "123456", "PromotionPayment"),
                              (650.0, "+254712345678", "Sera", "KES", None, None, None, None),
                          ])
 def test_create_business_to_consumer_transaction(test_client,
@@ -171,8 +174,7 @@ def test_create_business_to_consumer_transaction(test_client,
                                                  name,
                                                  provider_channel,
                                                  reason):
-
-    business_to_consumer_transaction, status_code = africas_talking_utility.create_business_to_consumer_transaction(
+    business_to_consumer_transaction = africas_talking_utility.create_business_to_consumer_transaction(
         amount=amount,
         phone_number=phone_number,
         product_name=product_name,
@@ -339,53 +341,47 @@ def test_create_business_to_consumer_transaction(test_client,
                 "currencyCode": currency_code
             }]
         }
-    assert status_code == 201
 
 
-def test_initiate_mobile_checkout_transaction(mocker, mobile_checkout_transaction):
-    initiate_mobile_checkout_transaction = mocker.MagicMock()
-    mocker.patch(
-        'worker.tasks.initiate_africas_talking_mobile_checkout_transaction.apply_async',
-        initiate_mobile_checkout_transaction)
+def test_initiate_mobile_checkout_transaction(mock_initiate_mobile_checkout_transaction, mobile_checkout_transaction):
     africas_talking_utility.initiate_mobile_checkout_transaction(mobile_checkout_transaction)
     kwargs = {
         'api_key': config.AFRICASTALKING_API_KEY,
         'mobile_checkout_transaction': mobile_checkout_transaction
     }
-    initiate_mobile_checkout_transaction.assert_called_with(kwargs=kwargs, ignore_result=False)
+    mock_initiate_mobile_checkout_transaction.assert_called_with(kwargs=kwargs)
 
 
-def test_initiate_business_to_business_transaction(mocker, business_to_business_transaction):
-    initiate_business_to_business_transaction = mocker.MagicMock()
-    mocker.patch('worker.tasks.initiate_africas_talking_business_to_business_transaction.apply_async',
-                 initiate_business_to_business_transaction)
+def test_initiate_business_to_business_transaction(mock_initiate_business_to_business_transaction,
+                                                   business_to_business_transaction):
     africas_talking_utility.initiate_business_to_business_transaction(business_to_business_transaction)
     kwargs = {
         'api_key': config.AFRICASTALKING_API_KEY,
         'business_to_business_transaction': business_to_business_transaction
     }
-    initiate_business_to_business_transaction.assert_called_with(kwargs=kwargs, ignore_result=False)
+    mock_initiate_business_to_business_transaction.assert_called_with(kwargs=kwargs)
 
 
-def test_initiate_business_to_consumer_transaction(mocker, business_to_consumer_transaction):
-    initiate_business_to_consumer_transaction = mocker.MagicMock()
-    mocker.patch('worker.tasks.initiate_africas_talking_business_to_consumer_transaction.apply_async',
-                 initiate_business_to_consumer_transaction)
+def test_initiate_business_to_consumer_transaction(mock_initiate_business_to_consumer_transactions,
+                                                   business_to_consumer_transaction):
     africas_talking_utility.initiate_business_to_consumer_transaction(business_to_consumer_transaction)
     kwargs = {
         'api_key': config.AFRICASTALKING_API_KEY,
         'business_to_consumer_transaction': business_to_consumer_transaction
     }
-    initiate_business_to_consumer_transaction.assert_called_with(kwargs=kwargs, ignore_result=False)
+    mock_initiate_business_to_consumer_transactions.assert_called_with(kwargs=kwargs)
 
 
-def test_initiate_wallet_balance_request(mocker):
-    initiate_wallet_balance_request = mocker.MagicMock()
-    mocker.patch('worker.tasks.initiate_africas_talking_wallet_balance_request.apply_async',
-                 initiate_wallet_balance_request)
-    africas_talking_utility.initiate_wallet_balance_request()
-    kwargs = {
-        'api_key': config.AFRICASTALKING_API_KEY,
-        'username': config.AFRICASTALKING_USERNAME
-    }
-    initiate_wallet_balance_request.assert_called_with(kwargs=kwargs, ignore_result=False)
+def test_get_wallet_balance_request():
+    with requests_mock.Mocker() as requests_mocker:
+        requests_mocker.get(config.AFRICAS_TALKING_WALLET_BALANCE,
+                            json={
+                                "balance": "KES 600.0000",
+                                "status": "Success"
+                            })
+        response, status_code = africas_talking_utility.get_wallet_balance_request()
+        assert response == {
+            "balance": "KES 600.0000",
+            "status": "Success"
+        }
+        assert status_code == 200

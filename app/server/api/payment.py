@@ -33,10 +33,9 @@ class PaymentAPI(MethodView):
     def get(self):
         payments_service_provider = request.args.get('payments_service_provider', None)
         if payments_service_provider and payments_service_provider == 'africas_talking':
-            query_result = self.africas_talking_payments_client.initiate_wallet_balance_request()
-            response = query_result[0]
-            status_code = query_result[1]
+            response, status_code = self.africas_talking_payments_client.get_wallet_balance_request()
             return make_response(jsonify(response), status_code)
+
         elif payments_service_provider and payments_service_provider == 'daraja':
             # TODO[Philip]: Implement integration with daraja API
             pass
@@ -49,7 +48,7 @@ class PaymentAPI(MethodView):
             }
             return make_response(jsonify(response), 403)
 
-    # @requires_auth(authenticated_roles=['ADMIN'])
+    @requires_auth(authenticated_roles=['ADMIN'])
     def post(self):
         payment_data = request.get_json()
 
@@ -69,7 +68,7 @@ class PaymentAPI(MethodView):
                     return make_response(jsonify(response), status_code)
 
                 # make util call to create business to business transaction
-                response, status_code = \
+                business_to_business_transaction = \
                     self.africas_talking_payments_client.create_business_to_business_transaction(
                         amount=payment_data.get('amount'),
                         destination_channel=payment_data.get('destination_account'),
@@ -80,29 +79,16 @@ class PaymentAPI(MethodView):
                         currency_code=payment_data.get('currency_code', "KES"),
                         metadata=payment_data.get('metadata')
                     )
-                if status_code == 201:
-                    result = self.africas_talking_payments_client.initiate_business_to_business_transaction(
-                        response)
 
-                    # normalize response to match standard API responses.
-                    status_code = result[1]
-                    if status_code == 201 and result[0].get("status") == "Queued":
-                        response = {
-                            'data': result[0],
-                            'message': 'Business to business successfully initiated.',
-                            'status': 'Success',
-                        }
-                        return make_response(jsonify(response), status_code)
-                    else:
-                        response = {
-                            'error': {
-                                'message': result[0].get('errorMessage'),
-                                'status': result[0].get('status')
-                            }
-                        }
-                        return make_response(jsonify(response), status_code)
-                else:
-                    return make_response(jsonify(response), status_code)
+                # initiate b2b transaction
+                self.africas_talking_payments_client.initiate_business_to_business_transaction(
+                    business_to_business_transaction)
+
+                response = {
+                    'message': 'Business to business transaction initiated successfully',
+                    'status': 'Success'
+                }
+                return make_response(jsonify(response), 200)
 
             elif payment_type == 'business_to_consumer':
                 # verify request
@@ -115,7 +101,7 @@ class PaymentAPI(MethodView):
                     response, status_code = invalid_request_on_validation(error.message)
                     return make_response(jsonify(response), status_code)
 
-                response, status_code = \
+                business_to_consumer_transaction = \
                     self.africas_talking_payments_client.create_business_to_consumer_transaction(
                         amount=payment_data.get('amount'),
                         phone_number=payment_data.get('phone_number'),
@@ -126,29 +112,17 @@ class PaymentAPI(MethodView):
                         provider_channel=payment_data.get('provider_channel'),
                         reason=payment_data.get('reason')
                     )
-                if status_code == 201:
-                    result = self.africas_talking_payments_client.initiate_business_to_consumer_transaction(
-                        response)
 
-                    # normalize response to match standard API responses.
-                    status_code = result[1]
-                    if status_code == 201 and result[0].get("numQueued") > 0:
-                        response = {
-                            'data': result[0],
-                            'message': 'Business to consumer successfully initiated.',
-                            'status': 'Success',
-                        }
-                        return make_response(jsonify(response), status_code)
-                    else:
-                        response = {
-                            'error': {
-                                'message': result[0].get('errorMessage'),
-                                'status': result[0].get('status')
-                            }
-                        }
-                        return make_response(jsonify(response), status_code)
-                else:
-                    return make_response(jsonify(response), status_code)
+                # initiate b2c transaction
+                self.africas_talking_payments_client.initiate_business_to_consumer_transaction(
+                    business_to_consumer_transaction
+                )
+
+                response = {
+                    'message': 'Business to consumer transaction initiated successfully',
+                    'status': 'Success'
+                }
+                return make_response(jsonify(response), 200)
 
             elif payment_type == 'mobile_checkout':
                 # verify request
@@ -161,7 +135,7 @@ class PaymentAPI(MethodView):
                     response, status_code = invalid_request_on_validation(error.message)
                     return make_response(jsonify(response), status_code)
 
-                response, status_code = \
+                mobile_checkout_transaction = \
                     self.africas_talking_payments_client.create_mobile_checkout_transaction(
                         amount=payment_data.get('amount'),
                         phone_number=payment_data.get('phone_number'),
@@ -170,33 +144,22 @@ class PaymentAPI(MethodView):
                         metadata=payment_data.get('metadata'),
                         provider_channel=payment_data.get('provider_channel')
                     )
-                if status_code == 201:
-                    # initiate mobile checkout
-                    result = self.africas_talking_payments_client.initiate_mobile_checkout_transaction(
-                        response)
 
-                    # normalize response to match standard API responses.
-                    status_code = result[1]
-                    if status_code == 201 and result[0].get("status") == "PendingConfirmation":
-                        response = {
-                            'data': result[0],
-                            'message': 'Mobile checkout successfully initiated.',
-                            'status': 'Success',
-                        }
-                        return make_response(jsonify(response), status_code)
-                    else:
-                        response = {
-                            'error': {
-                                'message': result[0].get('errorMessage'),
-                                'status': result[0].get('status')
-                            }
-                        }
-                        return make_response(jsonify(response), status_code)
-                else:
-                    return make_response(jsonify(response), status_code)
+                # initiate mobile checkout
+                self.africas_talking_payments_client.initiate_mobile_checkout_transaction(
+                    mobile_checkout_transaction
+                )
+
+                response = {
+                    'message': 'Mobile checkout transaction initiated successfully',
+                    'status': 'Success'
+                }
+                return make_response(jsonify(response), 200)
+
             else:
                 response, status_code = invalid_payment_type(payment_type)
                 return make_response(jsonify(response), status_code)
+
         elif payments_service_provider == 'daraja':
             # TODO[Philip]: Implement integration with Daraja API
             pass

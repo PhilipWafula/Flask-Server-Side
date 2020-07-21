@@ -1,11 +1,12 @@
 # system imports
+import requests
 from typing import Dict, Optional
 
 # third party import
 from flask import jsonify, make_response
 
 # application imports
-from app.server import constants
+from app.server import app_logger, config, constants
 from app.server.templates import responses
 from app.server.utils.phone import process_phone_number
 from worker import tasks
@@ -19,13 +20,13 @@ class AfricasTalking:
         self.username = username
 
     def create_mobile_checkout_transaction(
-        self,
-        amount: float,
-        phone_number: str,
-        product_name: str,
-        currency_code: str = "KES",
-        metadata: Optional[Dict] = None,
-        provider_channel: Optional[str] = None,
+            self,
+            amount: float,
+            phone_number: str,
+            product_name: str,
+            currency_code: str = "KES",
+            metadata: Optional[Dict] = None,
+            provider_channel: Optional[str] = None,
     ):
         """This function creates a checkout transaction JSON object with the attributes provided.
 
@@ -67,18 +68,18 @@ class AfricasTalking:
         if provider_channel:
             mobile_checkout_transaction["providerChannel"] = provider_channel
 
-        return mobile_checkout_transaction, 201
+        return mobile_checkout_transaction
 
     def create_business_to_business_transaction(
-        self,
-        amount: float,
-        destination_account: str,
-        destination_channel: str,
-        product_name: str,
-        provider: str,
-        transfer_type: str,
-        currency_code: str = "KES",
-        metadata: Optional[Dict] = None,
+            self,
+            amount: float,
+            destination_account: str,
+            destination_channel: str,
+            product_name: str,
+            provider: str,
+            transfer_type: str,
+            currency_code: str = "KES",
+            metadata: Optional[Dict] = None,
     ):
         """This function creates a B2B transaction JSON object with the parameters provided.
 
@@ -129,18 +130,18 @@ class AfricasTalking:
         if metadata:
             business_to_business_transaction["metadata"] = metadata
 
-        return business_to_business_transaction, 201
+        return business_to_business_transaction
 
     def create_business_to_consumer_transaction(
-        self,
-        amount: float,
-        phone_number: str,
-        product_name: str,
-        currency_code: str = "KES",
-        metadata: Optional[Dict] = None,
-        name: Optional[str] = None,
-        provider_channel: Optional[str] = None,
-        reason: Optional[str] = None,
+            self,
+            amount: float,
+            phone_number: str,
+            product_name: str,
+            currency_code: str = "KES",
+            metadata: Optional[Dict] = None,
+            name: Optional[str] = None,
+            provider_channel: Optional[str] = None,
+            reason: Optional[str] = None,
     ):
         """This function creates a B2C transaction JSON object from the parameters provided.
 
@@ -201,7 +202,7 @@ class AfricasTalking:
             "recipients": recipients,
         }
 
-        return business_to_consumer_transaction, 201
+        return business_to_consumer_transaction
 
     def initiate_mobile_checkout_transaction(self, mobile_checkout_transaction: Optional[Dict] = None):
         """This functions calls the task necessary to perform a checkout transaction.
@@ -213,10 +214,7 @@ class AfricasTalking:
             'api_key': self.api_key,
             'mobile_checkout_transaction': mobile_checkout_transaction
         }
-        result = tasks.initiate_africas_talking_mobile_checkout_transaction.apply_async(kwargs=kwargs,
-                                                                                        ignore_result=False)
-
-        return result.get()
+        tasks.initiate_africas_talking_mobile_checkout_transaction.apply_async(kwargs=kwargs)
 
     def initiate_business_to_business_transaction(self, business_to_business_transaction: Optional[Dict] = None):
         """This function calls the task necessary to perform a business to business transaction.
@@ -228,9 +226,7 @@ class AfricasTalking:
             'api_key': self.api_key,
             'business_to_business_transaction': business_to_business_transaction,
         }
-        result = tasks.initiate_africas_talking_business_to_business_transaction.apply_async(kwargs=kwargs,
-                                                                                             ignore_result=False)
-        return result.get()
+        tasks.initiate_africas_talking_business_to_business_transaction.apply_async(kwargs=kwargs)
 
     def initiate_business_to_consumer_transaction(self, business_to_consumer_transaction: Optional[Dict] = None):
         """This function calls the task necessary to perform a business to consumer transaction.
@@ -242,15 +238,43 @@ class AfricasTalking:
             'api_key': self.api_key,
             'business_to_consumer_transaction': business_to_consumer_transaction
         }
-        result = tasks.initiate_africas_talking_business_to_consumer_transaction.apply_async(kwargs=kwargs,
-                                                                                             ignore_result=False)
-        return result.get()
+        tasks.initiate_africas_talking_business_to_consumer_transaction.apply_async(kwargs=kwargs)
 
-    def initiate_wallet_balance_request(self):
-        """This function creates a task for sending a wallet balance query."""
-        kwargs = {
-            'api_key': self.api_key,
-            'username': self.username,
-        }
-        result = tasks.initiate_africas_talking_wallet_balance_request.apply_async(kwargs=kwargs, ignore_result=False)
-        return result.get()
+    def get_wallet_balance_request(self):
+        """This function makes a get request wallet balance query."""
+        try:
+            # send query
+            result = requests.get(
+                url=config.AFRICAS_TALKING_WALLET_BALANCE,
+                headers={
+                    "Accept": "application/json",
+                    "apiKey": self.api_key,
+                    "Content-Type": "application/json",
+                },
+                params={"username": self.username},
+                timeout=5,
+            )
+            # check result
+            if result.status_code != 200:
+                message = result.text
+                response = {
+                    'error': {
+                        'message': message,
+                        'status': 'Fail'
+                    }
+                }
+                return response, result.status_code
+            else:
+                return result.json(), result.status_code
+
+        except Exception as exception:
+            response = {
+                'error': {
+                    'message': f'{exception}',
+                    'status': 'Fail'
+                }
+            }
+            app_logger.error(
+                f"An error occurred initiating a wallet balance request with AfricasTalking: {exception}"
+            )
+            return response, 500
