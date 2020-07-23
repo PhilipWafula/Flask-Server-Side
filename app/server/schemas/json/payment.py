@@ -1,24 +1,3 @@
-africas_talking_checkout_json_schema = {
-    "type": "object",
-    "properties": {
-        "amount": {"type": "number"},
-        "currency_code": {"type": "string"},
-        "metadata": {"type": "object"},
-        "payment_type": {"type": "string"},
-        "phone_number": {"type": "string"},
-        "product_name": {"type": "string"},
-        "provider_channel": {"type": "string"},
-        "payments_service_provider": {"type": "string"},
-    },
-    "required": [
-        "amount",
-        "payment_type",
-        "phone_number",
-        "product_name",
-        "payments_service_provider",
-    ],
-}
-
 africas_talking_business_to_business_json_schema = {
     "type": "object",
     "properties": {
@@ -42,6 +21,7 @@ africas_talking_business_to_business_json_schema = {
         "provider",
         "payments_service_provider",
         "transfer_type",
+        "metadata"
     ],
 }
 
@@ -58,6 +38,27 @@ africas_talking_business_to_consumer_json_schema = {
         "provider_channel": {"type": "string"},
         "payments_service_provider": {"type": "string"},
         "transfer_type": {"type": "string"},
+    },
+    "required": [
+        "amount",
+        "payment_type",
+        "phone_number",
+        "product_name",
+        "payments_service_provider",
+    ],
+}
+
+africas_talking_checkout_json_schema = {
+    "type": "object",
+    "properties": {
+        "amount": {"type": "number"},
+        "currency_code": {"type": "string"},
+        "metadata": {"type": "object"},
+        "payment_type": {"type": "string"},
+        "phone_number": {"type": "string"},
+        "product_name": {"type": "string"},
+        "provider_channel": {"type": "string"},
+        "payments_service_provider": {"type": "string"},
     },
     "required": [
         "amount",
