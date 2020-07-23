@@ -213,3 +213,36 @@ def business_to_consumer_transaction():
             }
         ],
     }
+
+
+@pytest.fixture
+def mock_get_wallet_balance_task(mocker):
+    initiate_wallet_balance_request = mocker.MagicMock()
+    mocker.patch('worker.tasks.initiate_africas_talking_wallet_balance_request.apply_async',
+                 initiate_wallet_balance_request)
+    return initiate_wallet_balance_request
+
+
+@pytest.fixture
+def mock_initiate_business_to_consumer_transactions(mocker):
+    initiate_business_to_consumer_transaction = mocker.MagicMock()
+    mocker.patch('worker.tasks.initiate_africas_talking_business_to_consumer_transaction.apply_async',
+                 initiate_business_to_consumer_transaction)
+    return initiate_business_to_consumer_transaction
+
+
+@pytest.fixture
+def mock_initiate_business_to_business_transaction(mocker):
+    initiate_business_to_business_transaction = mocker.MagicMock()
+    mocker.patch('worker.tasks.initiate_africas_talking_business_to_business_transaction.apply_async',
+                 initiate_business_to_business_transaction)
+    return initiate_business_to_business_transaction
+
+
+@pytest.fixture
+def mock_initiate_mobile_checkout_transaction(mocker):
+    initiate_mobile_checkout_transaction = mocker.MagicMock()
+    mocker.patch(
+        'worker.tasks.initiate_africas_talking_mobile_checkout_transaction.apply_async',
+        initiate_mobile_checkout_transaction)
+    return initiate_mobile_checkout_transaction
