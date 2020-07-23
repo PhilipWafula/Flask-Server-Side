@@ -29,7 +29,7 @@ class PaymentAPI(MethodView):
         self.africas_talking_payments_client = AfricasTalking(
             config.AFRICASTALKING_API_KEY, config.AFRICASTALKING_USERNAME)
 
-    # @requires_auth(authenticated_roles=['ADMIN'])
+    @requires_auth(authenticated_roles=['ADMIN'])
     def get(self):
         payments_service_provider = request.args.get('payments_service_provider', None)
         if payments_service_provider and payments_service_provider == 'africas_talking':
@@ -71,8 +71,8 @@ class PaymentAPI(MethodView):
                 business_to_business_transaction = \
                     self.africas_talking_payments_client.create_business_to_business_transaction(
                         amount=payment_data.get('amount'),
-                        destination_channel=payment_data.get('destination_account'),
-                        destination_account=payment_data.get('destination_channel'),
+                        destination_channel=payment_data.get('destination_channel'),
+                        destination_account=payment_data.get('destination_account'),
                         product_name=payment_data.get('product_name'),
                         provider=payment_data.get('provider'),
                         transfer_type=payment_data.get('transfer_type'),
@@ -85,7 +85,7 @@ class PaymentAPI(MethodView):
                     business_to_business_transaction)
 
                 response = {
-                    'message': 'Business to business transaction initiated successfully',
+                    'message': 'Business to business transaction initiated successfully.',
                     'status': 'Success'
                 }
                 return make_response(jsonify(response), 200)
@@ -119,7 +119,7 @@ class PaymentAPI(MethodView):
                 )
 
                 response = {
-                    'message': 'Business to consumer transaction initiated successfully',
+                    'message': 'Business to consumer transaction initiated successfully.',
                     'status': 'Success'
                 }
                 return make_response(jsonify(response), 200)
@@ -151,7 +151,7 @@ class PaymentAPI(MethodView):
                 )
 
                 response = {
-                    'message': 'Mobile checkout transaction initiated successfully',
+                    'message': 'Mobile checkout transaction initiated successfully.',
                     'status': 'Success'
                 }
                 return make_response(jsonify(response), 200)
@@ -160,9 +160,6 @@ class PaymentAPI(MethodView):
                 response, status_code = invalid_payment_type(payment_type)
                 return make_response(jsonify(response), status_code)
 
-        elif payments_service_provider == 'daraja':
-            # TODO[Philip]: Implement integration with Daraja API
-            pass
         else:
             response, status_code = invalid_payments_service_provider(payments_service_provider)
             return make_response(jsonify(response), status_code)
