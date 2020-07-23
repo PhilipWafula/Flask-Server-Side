@@ -169,30 +169,21 @@ def create_blacklisted_token(activated_admin_user):
 
 
 @pytest.fixture(autouse=True)
-def mobile_checkout_transaction():
-    """Fixture for mocking checkout transaction data."""
-    return {
-        "amount": 10000.00,
-        "phoneNumber": "+254700000000",
-        "productName": config.AFRICASTALKING_PRODUCT_NAME,
-        "username": config.AFRICASTALKING_USERNAME,
-        "currencyCode": "KES",
-        "providerChannel": "000000",
-    }
-
-
-@pytest.fixture(autouse=True)
 def business_to_business_transaction():
     """Fixture for mocking b2b transaction data."""
     return {
         "amount": 10.00,
-        "destinationAccount": "sandbox",
-        "destinationChannel": "000000",
-        "productName": config.AFRICASTALKING_PRODUCT_NAME,
+        "currencyCode": "KES",
+        "destinationAccount": "Account",
+        "destinationChannel": "635214",
+        "productName": "flask-server-side",
         "provider": "Mpesa",
         "transferType": "BusinessPayBill",
         "username": config.AFRICASTALKING_USERNAME,
-        "currencyCode": "KES",
+        "metadata": {
+            "recipient": "Some description",
+            "mapping_id": "Some ID"
+        }
     }
 
 
@@ -200,38 +191,37 @@ def business_to_business_transaction():
 def business_to_consumer_transaction():
     """Fixture for mocking b2c transaction data."""
     return {
-        "productName": config.AFRICASTALKING_PRODUCT_NAME,
+        "productName": "flask-server-side",
         "username": config.AFRICASTALKING_USERNAME,
         "recipients": [
             {
-                "amount": 10.00,
+                "amount": 50.00,
                 "phoneNumber": "+254700000000",
                 "currencyCode": "KES",
                 "name": "Turing",
-                "providerChannel": "000000",
-                "reason": "SalaryPayment",
+                "providerChannel": "000000"
             }
-        ],
+        ]
     }
 
 
-@pytest.fixture
-def mock_get_wallet_balance_task(mocker):
-    initiate_wallet_balance_request = mocker.MagicMock()
-    mocker.patch('worker.tasks.initiate_africas_talking_wallet_balance_request.apply_async',
-                 initiate_wallet_balance_request)
-    return initiate_wallet_balance_request
+@pytest.fixture(autouse=True)
+def mobile_checkout_transaction():
+    """Fixture for mocking checkout transaction data."""
+    return {
+        "amount": 2500.00,
+        "phoneNumber": "+254700000000",
+        "productName": "flask-server-side",
+        "username": config.AFRICASTALKING_USERNAME,
+        "currencyCode": "KES",
+        "metadata": {
+            "item": "Vanilla Latte"
+        },
+        "providerChannel": "ATHENA"
+    }
 
 
-@pytest.fixture
-def mock_initiate_business_to_consumer_transactions(mocker):
-    initiate_business_to_consumer_transaction = mocker.MagicMock()
-    mocker.patch('worker.tasks.initiate_africas_talking_business_to_consumer_transaction.apply_async',
-                 initiate_business_to_consumer_transaction)
-    return initiate_business_to_consumer_transaction
-
-
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def mock_initiate_business_to_business_transaction(mocker):
     initiate_business_to_business_transaction = mocker.MagicMock()
     mocker.patch('worker.tasks.initiate_africas_talking_business_to_business_transaction.apply_async',
@@ -239,7 +229,15 @@ def mock_initiate_business_to_business_transaction(mocker):
     return initiate_business_to_business_transaction
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
+def mock_initiate_business_to_consumer_transaction(mocker):
+    initiate_business_to_consumer_transaction = mocker.MagicMock()
+    mocker.patch('worker.tasks.initiate_africas_talking_business_to_consumer_transaction.apply_async',
+                 initiate_business_to_consumer_transaction)
+    return initiate_business_to_consumer_transaction
+
+
+@pytest.fixture(autouse=True)
 def mock_initiate_mobile_checkout_transaction(mocker):
     initiate_mobile_checkout_transaction = mocker.MagicMock()
     mocker.patch(
