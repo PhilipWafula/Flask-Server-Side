@@ -224,7 +224,7 @@ class AfricasTalking:
         """
         kwargs = {
             'api_key': self.api_key,
-            'business_to_business_transaction': business_to_business_transaction,
+            'business_to_business_transaction': business_to_business_transaction
         }
         tasks.initiate_africas_talking_business_to_business_transaction.apply_async(kwargs=kwargs)
 
