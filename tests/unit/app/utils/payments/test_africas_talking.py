@@ -362,14 +362,14 @@ def test_initiate_business_to_business_transaction(mock_initiate_business_to_bus
     mock_initiate_business_to_business_transaction.assert_called_with(kwargs=kwargs)
 
 
-def test_initiate_business_to_consumer_transaction(mock_initiate_business_to_consumer_transactions,
+def test_initiate_business_to_consumer_transaction(mock_initiate_business_to_consumer_transaction,
                                                    business_to_consumer_transaction):
     africas_talking_utility.initiate_business_to_consumer_transaction(business_to_consumer_transaction)
     kwargs = {
         'api_key': config.AFRICASTALKING_API_KEY,
         'business_to_consumer_transaction': business_to_consumer_transaction
     }
-    mock_initiate_business_to_consumer_transactions.assert_called_with(kwargs=kwargs)
+    mock_initiate_business_to_consumer_transaction.assert_called_with(kwargs=kwargs)
 
 
 def test_get_wallet_balance_request():
