@@ -103,9 +103,6 @@ PASSWORD_PEPPER = secrets_config_file_parser["APP"].get("password_pepper")
 # get africa's talking credentials
 AFRICASTALKING_USERNAME = secrets_config_file_parser["AFRICASTALKING"].get("username")
 AFRICASTALKING_API_KEY = secrets_config_file_parser["AFRICASTALKING"].get("api_key")
-AFRICASTALKING_PRODUCT_NAME = secrets_config_file_parser["AFRICASTALKING"].get(
-    "product_name"
-)
 AFRICASTALKING_MOBILE_CHECKOUT_URL = public_config_file_parser["AFRICASTALKING"].get(
     "mobile_checkout"
 )
