@@ -86,6 +86,7 @@ def process_create_or_update_organization_request(
             return response, 400
 
     organization = create_organization(name=name, address=address, is_master=is_master)
+    db.session.flush()
 
     response = {
         "data": {"organization": organization_schema.dump(organization).data},
