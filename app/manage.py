@@ -6,7 +6,7 @@ from app.server import create_app
 from app.server import db
 from app.server import models
 
-MIGRATION_DIR = os.path.join("app", "migrations")
+MIGRATION_DIR = os.path.join("migrations")
 
 app = create_app()
 migrate = Migrate(app=app, db=db, directory=MIGRATION_DIR)
