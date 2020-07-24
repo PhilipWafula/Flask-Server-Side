@@ -2,9 +2,6 @@
 import requests
 from typing import Dict, Optional
 
-# third party import
-from flask import jsonify, make_response
-
 # application imports
 from app.server import app_logger, config, constants
 from app.server.templates import responses
