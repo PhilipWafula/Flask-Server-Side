@@ -1,6 +1,8 @@
+# third party imports
 from datetime import datetime
 from sqlalchemy.ext.mutable import Mutable
 
+# application imports
 from app.server import db
 
 
