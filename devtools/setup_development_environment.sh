@@ -53,7 +53,7 @@ echo "Rebuilding the DB..."
 psql "$database_uri" -c "CREATE DATABASE $database"
 
 # run migrations
-cd app || exit
+cd ../app || exit
 python3 manage.py db upgrade
 
 # seed data
