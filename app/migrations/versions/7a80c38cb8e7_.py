@@ -31,6 +31,8 @@ def upgrade():
     sa.Column('status_description', sa.String(), nullable=True),
     sa.Column('type', sa.Enum('MOBILE_BUSINESS_TO_BUSINESS', 'MOBILE_BUSINESS_TO_CONSUMER', 'MOBILE_CHECKOUT', name='transactiontype'), nullable=True),
     sa.Column('service_provider', sa.Enum('AFRICAS_TALKING', 'DARAJA', name='transactionserviceprovider'), nullable=True),
+    sa.Column("created_at", sa.DateTime(), nullable=True),
+    sa.Column("updated_at", sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_transactions_destination_account'), 'mpesa_transactions', ['destination_account'], unique=False)
