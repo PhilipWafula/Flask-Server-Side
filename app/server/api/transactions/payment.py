@@ -48,7 +48,7 @@ class PaymentAPI(MethodView):
             }
             return make_response(jsonify(response), 403)
 
-    @requires_auth(authenticated_roles=['ADMIN'])
+    # @requires_auth(authenticated_roles=['ADMIN'])
     def post(self):
         payment_data = request.get_json()
 
