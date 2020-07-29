@@ -2,19 +2,19 @@
 from enum import Enum
 
 
-class TransactionStatus(Enum):
+class MpesaTransactionStatus(Enum):
     COMPLETE = "COMPLETE"
     FAILED = "FAILED"
     INITIATED = "INITIATED"
     PENDING = "PENDING"
 
 
-class TransactionServiceProvider(Enum):
+class MpesaTransactionServiceProvider(Enum):
     AFRICAS_TALKING = "AFRICAS_TALKING"
     DARAJA = "DARAJA"
 
 
-class TransactionType(Enum):
-    BUSINESS_TO_BUSINESS = "BUSINESS_TO_BUSINESS"
-    BUSINESS_TO_CONSUMER = "BUSINESS_TO_CONSUMER"
+class MpesaTransactionType(Enum):
+    MOBILE_BUSINESS_TO_BUSINESS = "MOBILE_BUSINESS_TO_BUSINESS"
+    MOBILE_BUSINESS_TO_CONSUMER = "MOBILE_BUSINESS_TO_CONSUMER"
     MOBILE_CHECKOUT = "MOBILE_CHECKOUT"

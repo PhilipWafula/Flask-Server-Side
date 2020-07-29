@@ -28,3 +28,7 @@ class MPesaTransaction(db.Model):
     status_description = db.Column(db.String)
     type = db.Column(db.Enum(MpesaTransactionType))
     service_provider = db.Column(db.Enum(MpesaTransactionServiceProvider))
+
+    # date
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
