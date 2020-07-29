@@ -9,7 +9,9 @@ from flask_mail import Message
 # application imports
 from app.server import config, db, mailer
 from app.server.models.mpesa_transaction import MPesaTransaction
-from app.server.utils.enums.transaction_enums import MpesaTransactionServiceProvider, MpesaTransactionStatus, MpesaTransactionType
+from app.server.utils.enums.transaction_enums import MpesaTransactionServiceProvider,\
+    MpesaTransactionStatus,\
+    MpesaTransactionType
 from worker import celery
 
 task_logger = get_task_logger(__name__)
@@ -79,7 +81,7 @@ def initiate_africas_talking_mobile_checkout_transaction(api_key: str,
         if status == 'Failed':
             status_description = response_body.get('errorMessage')
         else:
-            status_description = 'MPesaTransaction queued successfully.'
+            status_description = 'Mobile checkout queued successfully.'
 
         # if transaction successfully initiated, create transaction on local table
         if status_code == 201 and status == 'PendingConfirmation':
@@ -127,18 +129,31 @@ def initiate_africas_talking_business_to_business_transaction(api_key: str,
 
         # get status code and status
         status_code = response.status_code
-        status = response.json().get('status')
+        response_body = response.json()
+
+        # process response data
+        if response_body.get('status') == 'Queued':
+            status = MpesaTransactionStatus.INITIATED
+        else:
+            status = MpesaTransactionStatus.FAILED
+
+        # define transaction status description
+        if status == 'Failed':
+            status_description = response_body.get('errorMessage')
+        else:
+            status_description = 'Mobile business to business transaction queued successfully.'
 
         # if transaction successfully initiated, create transaction on local table
-        if status_code == 201 and status == 'Queued':
+        if status_code == 201 and response_body.get('status') == 'Queued':
             transaction = MPesaTransaction(
                 destination_account=business_to_business_transaction.get('destinationChannel'),
                 amount=business_to_business_transaction.get('amount'),
                 product_name=business_to_business_transaction.get('productName'),
                 provider='MPESA',
-                service_provider_transaction_reference=response.json().get('transactionId'),
-                status=MpesaTransactionStatus.INITIATED,
-                type=MpesaTransactionType.BUSINESS_TO_BUSINESS,
+                service_provider_transaction_id=response.json().get('transactionId'),
+                status=status,
+                status_description=status_description,
+                type=MpesaTransactionType.MOBILE_BUSINESS_TO_BUSINESS,
                 service_provider=MpesaTransactionServiceProvider.AFRICAS_TALKING
             )
             db.session.add(transaction)
@@ -192,7 +207,7 @@ def initiate_africas_talking_business_to_consumer_transaction(api_key: str,
                 if status == 'Failed':
                     status_description = entry.get('errorMessage')
                 else:
-                    status_description = 'MPesaTransaction queued successfully.'
+                    status_description = 'Mobile Business to consumer transaction queued successfully.'
 
                 transaction = MPesaTransaction(
                     destination_account=entry.get('phoneNumber'),
