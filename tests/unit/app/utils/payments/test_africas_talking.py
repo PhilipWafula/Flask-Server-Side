@@ -1,4 +1,5 @@
 # system imports
+import json
 
 # third-party imports
 import pytest
@@ -344,9 +345,12 @@ def test_create_business_to_consumer_transaction(test_client,
 
 
 def test_initiate_mobile_checkout_transaction(mock_initiate_mobile_checkout_transaction, mobile_checkout_transaction):
-    africas_talking_utility.initiate_mobile_checkout_transaction(mobile_checkout_transaction)
+    africas_talking_utility.initiate_mobile_checkout_transaction(idempotency_key=None,
+                                                                 mobile_checkout_transaction=mobile_checkout_transaction
+                                                                 )
     kwargs = {
         'api_key': config.AFRICASTALKING_API_KEY,
+        'idempotency_key': None,
         'mobile_checkout_transaction': mobile_checkout_transaction
     }
     mock_initiate_mobile_checkout_transaction.assert_called_with(kwargs=kwargs)
@@ -364,9 +368,13 @@ def test_initiate_business_to_business_transaction(mock_initiate_business_to_bus
 
 def test_initiate_business_to_consumer_transaction(mock_initiate_business_to_consumer_transaction,
                                                    business_to_consumer_transaction):
-    africas_talking_utility.initiate_business_to_consumer_transaction(business_to_consumer_transaction)
+    africas_talking_utility.initiate_business_to_consumer_transaction(
+        idempotency_key=None,
+        business_to_consumer_transaction=business_to_consumer_transaction
+    )
     kwargs = {
         'api_key': config.AFRICASTALKING_API_KEY,
+        'idempotency_key': None,
         'business_to_consumer_transaction': business_to_consumer_transaction
     }
     mock_initiate_business_to_consumer_transaction.assert_called_with(kwargs=kwargs)
@@ -384,4 +392,19 @@ def test_get_wallet_balance_request():
             "balance": "KES 600.0000",
             "status": "Success"
         }
+        assert status_code == 200
+
+
+def test_get_transaction_data(create_successful_africas_talking_transaction_query_result):
+    with requests_mock.Mocker() as requests_mocker:
+        requests_mocker.get(config.AFRICAS_TALKING_FIND_TRANSACTION,
+                            json=create_successful_africas_talking_transaction_query_result
+                            )
+        transaction_id = create_successful_africas_talking_transaction_query_result.get(
+            'transactionId'
+        )
+        response, status_code = africas_talking_utility.get_transaction_data(
+            service_provider_transaction_id=transaction_id
+        )
+        assert response.get('transactionId') == transaction_id
         assert status_code == 200

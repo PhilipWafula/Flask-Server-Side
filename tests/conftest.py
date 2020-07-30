@@ -180,6 +180,7 @@ def create_initiated_mpesa_transaction(test_client, initialize_database):
         product_name='flask-server-side',
         provider='MPESA',
         service_provider_transaction_id='ATPid_SampleTxnId123',
+        idempotency_key='186f90f3-1897-41af-8f86-fe4e7128526f',
         status=MpesaTransactionStatus.INITIATED,
         status_description='Mobile checkout queued successfully.',
         type=MpesaTransactionType.MOBILE_CHECKOUT,
@@ -187,6 +188,26 @@ def create_initiated_mpesa_transaction(test_client, initialize_database):
     )
     db.session.add(mpesa_transaction)
     db.session.commit()
+
+
+@pytest.fixture(scope="module")
+def create_failed_mpesa_transaction(test_client, initialize_database):
+    mpesa_transaction = MpesaTransaction(
+        destination_account='+254712345678',
+        amount=375.00,
+        product_name='flask-server-side',
+        provider='MPESA',
+        service_provider_transaction_id='ATPid_SampleTxnId456',
+        idempotency_key='987r98e3-1998-41lm-8f86-jh4e0006526z',
+        status=MpesaTransactionStatus.FAILED,
+        status_description='The user is not within network coverage.',
+        type=MpesaTransactionType.MOBILE_CHECKOUT,
+        service_provider=MpesaTransactionServiceProvider.AFRICAS_TALKING
+    )
+    db.session.add(mpesa_transaction)
+    db.session.commit()
+
+    return mpesa_transaction
 
 
 @pytest.fixture(scope="module")
@@ -233,6 +254,37 @@ def create_successful_africas_talking_mobile_checkout_confirmation_callback():
         "destination": "PaymentWallet",
         "value": "KES 375.0000",
         "transactionId": "ATPid_SampleTxnId123"
+    }
+
+
+@pytest.fixture(scope='module')
+def create_successful_africas_talking_transaction_query_result():
+    return {
+        "status": "Success",
+        "data": {
+            "requestMetadata": {
+                "item": "Vanilla Latte"
+            },
+            "sourceType": "PhoneNumber",
+            "source": "+254700000000",
+            "provider": "Athena",
+            "destinationType": "Wallet",
+            "description": "The user is not within network coverage.",
+            "providerChannel": "ATHENA",
+            "transactionFee": "KES 0.0000",
+            "providerRefId": "N/A",
+            "providerMetadata": {
+                "item": "Vanilla Latte"
+            },
+            "status": "Failed",
+            "productName": "flask-server-side",
+            "category": "MobileCheckout",
+            "transactionDate": "2020-07-29 08:22:54",
+            "destination": "PaymentWallet",
+            "value": "KES 2500.0000",
+            "transactionId": "ATPid_SampleTxnId123",
+            "creationTime": "2020-07-29 08:22:54"
+        }
     }
 
 
