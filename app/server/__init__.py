@@ -45,9 +45,9 @@ def register_blueprints(application):
     url_version = "/api/v1"
     from app.server.api.auth import auth_blueprint
     from app.server.api.organization import organization_blueprint
-    from app.server.api.transactions.africas_talking_payment_callbacks import \
+    from app.server.api.payments.africas_talking_payment_callbacks import \
         africas_talking_payment_validation_blueprint
-    from app.server.api.transactions.payment import payments_blueprint
+    from app.server.api.payments.payment import payments_blueprint
     from app.server.api.user import user_blueprint
 
     application.register_blueprint(auth_blueprint, url_prefix=url_version)

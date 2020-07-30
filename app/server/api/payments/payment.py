@@ -47,7 +47,7 @@ class PaymentAPI(MethodView):
             }
             return make_response(jsonify(response), 403)
 
-    # @requires_auth(authenticated_roles=['ADMIN'])
+    @requires_auth(authenticated_roles=['ADMIN'])
     def post(self):
         payment_data = request.get_json()
 
@@ -81,7 +81,8 @@ class PaymentAPI(MethodView):
 
                 # initiate b2b transaction
                 self.africas_talking_payments_client.initiate_business_to_business_transaction(
-                    business_to_business_transaction)
+                    business_to_business_transaction=business_to_business_transaction
+                )
 
                 response = {
                     'message': 'Business to business transaction initiated successfully.',
@@ -114,7 +115,7 @@ class PaymentAPI(MethodView):
 
                 # initiate b2c transaction
                 self.africas_talking_payments_client.initiate_business_to_consumer_transaction(
-                    business_to_consumer_transaction
+                    business_to_consumer_transaction=business_to_consumer_transaction
                 )
 
                 response = {
@@ -146,7 +147,7 @@ class PaymentAPI(MethodView):
 
                 # initiate mobile checkout
                 self.africas_talking_payments_client.initiate_mobile_checkout_transaction(
-                    mobile_checkout_transaction
+                    mobile_checkout_transaction=mobile_checkout_transaction
                 )
 
                 response = {
@@ -165,10 +166,12 @@ class PaymentAPI(MethodView):
 
 
 class RetryPaymentAPI(MethodView):
+
     def __init__(self):
         self.africas_talking_payments_client = AfricasTalking(
             config.AFRICASTALKING_API_KEY, config.AFRICASTALKING_USERNAME)
 
+    # @requires_auth(authenticated_roles=['ADMIN'])
     def post(self):
 
         payment_retrial_data = request.get_json()
@@ -177,80 +180,110 @@ class RetryPaymentAPI(MethodView):
         service_provider_transaction_id = payment_retrial_data.get('service_provider_transaction_id')
 
         # get mpesa transaction to retry
-        mpesa_transaction_data, status_code = self.africas_talking_payments_client.get_transaction_data(
+        response, status_code = self.africas_talking_payments_client.get_transaction_data(
             service_provider_transaction_id=service_provider_transaction_id
         )
 
-        if mpesa_transaction_data.get('status') == 'Success':
-            # get transaction type and idempotency key:
-            mpesa_transaction = MpesaTransaction.query.filter_by(
-                service_provider_transaction_id=service_provider_transaction_id
-            ).first()
-            idempotency_key = mpesa_transaction.idempotency_key
-            transaction_type = mpesa_transaction.type
+        if status_code == 200:
+            if response.get('status') == 'Success':
 
-            # get generic transaction data extract currency from value of format: "KES 2900.0000"
-            value = mpesa_transaction_data.get('value').split()
-            amount = float(value[0])
-            currency_code = value[1]
+                # get mpesa transaction data
+                mpesa_transaction_data = response.get('data')
 
-            # try transaction
-            if transaction_type == 'MOBILE_CHECKOUT':
+                # get transaction type and idempotency key:
+                local_mpesa_transaction = MpesaTransaction.query.filter_by(
+                    service_provider_transaction_id=service_provider_transaction_id
+                ).first()
+                idempotency_key = local_mpesa_transaction.idempotency_key
+                transaction_type = local_mpesa_transaction.type
 
-                # build mobile checkout transaction to retry
-                mobile_checkout_transaction = \
-                    self.africas_talking_payments_client.create_mobile_checkout_transaction(
-                        amount=amount,
-                        phone_number=mpesa_transaction_data.get('destination'),
-                        product_name=mpesa_transaction_data.get('productName'),
-                        currency_code=currency_code,
-                        metadata=mpesa_transaction_data.get('requestMetadata'),
-                        provider_channel=mpesa_transaction_data.get('providerChannel')
-                    )
+                # get generic transaction data extract currency from value of format: "KES 2900.0000"
+                value = mpesa_transaction_data.get('value').split()
+                amount = float(value[1])
+                currency_code = value[0]
 
-                # initiate retrial
-                self.africas_talking_payments_client.initiate_mobile_checkout_transaction(
-                    idempotency_key=idempotency_key,
-                    mobile_checkout_transaction=mobile_checkout_transaction
-                )
+                # retry transaction
+                if mpesa_transaction_data.get('status') == 'Failed':
+                    if transaction_type == MpesaTransactionType.MOBILE_CHECKOUT:
 
-                response = {
-                    'message': 'Mobile checkout transaction retrial initiated successfully.',
-                    'status': 'Success'
-                }
-                return make_response(jsonify(response), 200)
+                        # build mobile checkout transaction to retry
+                        mobile_checkout_transaction = \
+                            self.africas_talking_payments_client.create_mobile_checkout_transaction(
+                                amount=amount,
+                                phone_number=mpesa_transaction_data.get('source'),
+                                product_name=mpesa_transaction_data.get('productName'),
+                                currency_code=currency_code,
+                                metadata=mpesa_transaction_data.get('requestMetadata'),
+                                provider_channel=mpesa_transaction_data.get('providerChannel')
+                            )
 
-            elif transaction_type == 'MOBILE_BUSINESS_TO_CONSUMER':
-                business_to_consumer_transaction = \
-                    self.africas_talking_payments_client.create_business_to_consumer_transaction(
-                        amount=amount,
-                        phone_number=mpesa_transaction_data.get('destination'),
-                        product_name=mpesa_transaction_data.get('productName'),
-                        currency_code=currency_code,
-                        metadata=mpesa_transaction_data.get('requestMetadata'),
-                        provider_channel=mpesa_transaction_data.get('providerChannel')
-                    )
+                        # initiate retrial
+                        self.africas_talking_payments_client.initiate_mobile_checkout_transaction(
+                            idempotency_key=idempotency_key,
+                            mobile_checkout_transaction=mobile_checkout_transaction
+                        )
 
-                # initiate b2c transaction
-                self.africas_talking_payments_client.initiate_business_to_consumer_transaction(
-                    idempotency_key=idempotency_key,
-                    business_to_consumer_transaction=business_to_consumer_transaction
-                )
+                        response = {
+                            'message': 'Mobile checkout transaction retrial initiated successfully.',
+                            'status': 'Success'
+                        }
+                        return make_response(jsonify(response), 200)
 
-                response = {
-                    'message': 'Business to consumer transaction retrial initiated successfully.',
-                    'status': 'Success'
-                }
-                return make_response(jsonify(response), 200)
+                    elif transaction_type == MpesaTransactionType.MOBILE_BUSINESS_TO_CONSUMER:
+                        business_to_consumer_transaction = \
+                            self.africas_talking_payments_client.create_business_to_consumer_transaction(
+                                amount=amount,
+                                phone_number=mpesa_transaction_data.get('destination'),
+                                product_name=mpesa_transaction_data.get('productName'),
+                                currency_code=currency_code,
+                                metadata=mpesa_transaction_data.get('requestMetadata'),
+                                provider_channel=mpesa_transaction_data.get('providerChannel')
+                            )
 
+                        # initiate b2c transaction
+                        self.africas_talking_payments_client.initiate_business_to_consumer_transaction(
+                            idempotency_key=idempotency_key,
+                            business_to_consumer_transaction=business_to_consumer_transaction
+                        )
+
+                        response = {
+                            'message': 'Business to consumer transaction retrial initiated successfully.',
+                            'status': 'Success'
+                        }
+                        return make_response(jsonify(response), 200)
+
+                    else:
+                        response = {
+                            'error': {
+                                'message': f'Cannot retry transaction with status: {mpesa_transaction_data.get("status")}',
+                                'status': 'Fail'
+                            }
+                        }
+                    return make_response(jsonify(response), 403)
+                else:
+                    response = {
+                        'error': {
+                            'message': f'Unrecognized transaction type {transaction_type}',
+                            'status': 'Fail'
+                        }
+                    }
+                    return make_response(jsonify(response), 403)
             else:
-                response, status_code = invalid_payment_type(transaction_type)
-                return make_response(jsonify(response), status_code)
+                response = {
+                    'error': {
+                        'message': response.get("errorMessage"),
+                        'status': "Fail"
+                    }
+                }
+                return make_response(jsonify(response), 500)
+        else:
+            return make_response(jsonify(response), status_code)
 
 
 create_payments_view = PaymentAPI.as_view("create_payments_view")
-retry_payments_view = PaymentAPI.as_view("retry_payments_view")
 get_wallet_balance = PaymentAPI.as_view("wallet_balance_view")
+
+retry_payments_view = RetryPaymentAPI.as_view("retry_payments_view")
 
 payments_blueprint.add_url_rule(
     "/payments/",

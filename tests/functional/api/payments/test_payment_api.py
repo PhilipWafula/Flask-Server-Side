@@ -1,6 +1,10 @@
 # application imports
 from app import config
 
+# third party imports
+import requests
+import requests_mock
+
 
 # TODO: [Philip] Find a way to test the get wallet api call.
 
@@ -81,6 +85,7 @@ def test_make_business_to_consumer_transaction(test_client,
     )
     kwargs = {
         'api_key': config.AFRICASTALKING_API_KEY,
+        'idempotency_key': None,
         'business_to_consumer_transaction': business_to_consumer_transaction
     }
     mock_initiate_business_to_consumer_transaction.assert_called_with(kwargs=kwargs)
@@ -123,6 +128,7 @@ def test_make_mobile_checkout_transaction(test_client,
     )
     kwargs = {
         'api_key': config.AFRICASTALKING_API_KEY,
+        'idempotency_key': None,
         'mobile_checkout_transaction': mobile_checkout_transaction
     }
     mock_initiate_mobile_checkout_transaction.assert_called_with(kwargs=kwargs)
@@ -131,3 +137,43 @@ def test_make_mobile_checkout_transaction(test_client,
         'status': 'Success'
     }
     assert response.status_code == 200
+
+
+def test_retry_payments_api(test_client,
+                            activated_admin_user,
+                            mobile_checkout_transaction,
+                            create_failed_mpesa_transaction,
+                            mock_initiate_mobile_checkout_transaction,
+                            create_successful_africas_talking_transaction_query_result):
+
+    authentication_token = activated_admin_user.encode_auth_token().decode()
+
+    with requests_mock.Mocker() as requests_mocker:
+        requests_mocker.get(config.AFRICAS_TALKING_FIND_TRANSACTION,
+                            json=create_successful_africas_talking_transaction_query_result
+                            )
+        response = test_client.post(
+            '/api/v1/payments/retry/',
+            headers={
+                'Authorization': f'Bearer {authentication_token}',
+                'Accept': 'application/json'
+            },
+            content_type='application/json',
+            json={
+                'service_provider_transaction_id': create_failed_mpesa_transaction.service_provider_transaction_id
+            }
+        )
+
+        assert response.json == {
+            'message': 'Mobile checkout transaction retrial initiated successfully.',
+            'status': 'Success'
+        }
+        assert response.status_code == 200
+
+        kwargs = {
+            'api_key': config.AFRICASTALKING_API_KEY,
+            'idempotency_key': create_failed_mpesa_transaction.idempotency_key,
+            'mobile_checkout_transaction': mobile_checkout_transaction
+        }
+
+        mock_initiate_mobile_checkout_transaction.assert_called_with(kwargs=kwargs)
