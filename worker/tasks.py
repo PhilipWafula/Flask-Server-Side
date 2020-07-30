@@ -49,16 +49,18 @@ def send_email(mail_sender: str, email_recipients: list, subject: str, html_body
 
 @celery.task
 def initiate_africas_talking_mobile_checkout_transaction(api_key: str,
+                                                         idempotency_key: Optional[str] = None,
                                                          mobile_checkout_transaction: Optional[Dict] = None):
     """Mobile checkout post request task.
 
-    :param api_key: Africa's Talking access token
-    :param mobile_checkout_transaction: The transaction json body
+    :param api_key: Africa's Talking access token.
+    :param idempotency_key: unique key necessary for retrying a specific transaction.
+    :param mobile_checkout_transaction: The transaction json body.
     :return: null
     """
     # send payments
     try:
-        idempotency_key = str(uuid4())
+        idempotency_key = idempotency_key or str(uuid4())
         response = requests.post(
             url=config.AFRICASTALKING_MOBILE_CHECKOUT_URL,
             headers={
@@ -73,10 +75,6 @@ def initiate_africas_talking_mobile_checkout_transaction(api_key: str,
         # get status code and status
         status_code = response.status_code
         response_body = response.json()
-
-        task_logger.debug(
-            response_body
-        )
 
         # process response data
         if response_body.get('status') == 'PendingConfirmation':
@@ -124,14 +122,12 @@ def initiate_africas_talking_business_to_business_transaction(api_key: str,
     """
 
     try:
-        idempotency_key = str(uuid4())
         response = requests.post(
             url=config.AFRICASTALKING_MOBILE_B2B_URL,
             headers={
                 "Accept": "application/json",
                 "ApiKey": api_key,
-                "Content-Type": "application/json",
-                "Idempotency-Key": idempotency_key,
+                "Content-Type": "application/json"
             },
             timeout=5,
             json=business_to_business_transaction,
@@ -178,16 +174,18 @@ def initiate_africas_talking_business_to_business_transaction(api_key: str,
 
 @celery.task
 def initiate_africas_talking_business_to_consumer_transaction(api_key: str,
+                                                              idempotency_key: Optional[str] = None,
                                                               business_to_consumer_transaction: Optional[Dict] = None):
     """B2C post request task.
 
-    :param api_key: Africa's Talking access token
-    :param business_to_consumer_transaction: The transaction json body
+    :param api_key: Africa's Talking access token.
+    :param idempotency_key: unique key necessary for retrying a specific transaction.
+    :param business_to_consumer_transaction: The transaction json body.
     :return: null
     """
 
     try:
-        idempotency_key = str(uuid4())
+        idempotency_key = idempotency_key or str(uuid4())
         response = requests.post(
             url=config.AFRICASTALKING_MOBILE_B2C_URL,
             headers={
