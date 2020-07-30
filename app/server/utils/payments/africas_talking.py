@@ -201,14 +201,18 @@ class AfricasTalking:
 
         return business_to_consumer_transaction
 
-    def initiate_mobile_checkout_transaction(self, mobile_checkout_transaction: Optional[Dict] = None):
+    def initiate_mobile_checkout_transaction(self,
+                                             idempotency_key=None,
+                                             mobile_checkout_transaction: Optional[Dict] = None):
         """This functions calls the task necessary to perform a checkout transaction.
 
+        :param idempotency_key: unique key necessary for retrying a specific transaction.
         :param mobile_checkout_transaction: checkout transaction object
         :return: null
         """
         kwargs = {
             'api_key': self.api_key,
+            'idempotency_key': idempotency_key,
             'mobile_checkout_transaction': mobile_checkout_transaction
         }
         tasks.initiate_africas_talking_mobile_checkout_transaction.apply_async(kwargs=kwargs)
@@ -225,14 +229,18 @@ class AfricasTalking:
         }
         tasks.initiate_africas_talking_business_to_business_transaction.apply_async(kwargs=kwargs)
 
-    def initiate_business_to_consumer_transaction(self, business_to_consumer_transaction: Optional[Dict] = None):
+    def initiate_business_to_consumer_transaction(self,
+                                                  idempotency_key=None,
+                                                  business_to_consumer_transaction: Optional[Dict] = None):
         """This function calls the task necessary to perform a business to consumer transaction.
 
+        :param idempotency_key: unique key necessary for retrying a specific transaction.
         :param business_to_consumer_transaction: B2C transaction object
         :return: null
         """
         kwargs = {
             'api_key': self.api_key,
+            'idempotency_key': idempotency_key,
             'business_to_consumer_transaction': business_to_consumer_transaction
         }
         tasks.initiate_africas_talking_business_to_consumer_transaction.apply_async(kwargs=kwargs)
@@ -273,5 +281,47 @@ class AfricasTalking:
             }
             app_logger.error(
                 f"An error occurred initiating a wallet balance request with AfricasTalking: {exception}"
+            )
+            return response, 500
+
+    def get_transaction_data(self, service_provider_transaction_id: str):
+        """This function makes a get request to find a specific transaction."""
+        try:
+            # send query
+            result = requests.get(
+                url=config.AFRICAS_TALKING_FIND_TRANSACTION,
+                headers={
+                    "Accept": "application/json",
+                    "apiKey": self.api_key,
+                    "Content-Type": "application/json",
+                },
+                params={
+                    "username": self.username,
+                    "transactionId": service_provider_transaction_id
+                },
+                timeout=5,
+            )
+            # check result
+            if result.status_code != 200:
+                message = result.text
+                response = {
+                    'error': {
+                        'message': message,
+                        'status': 'Fail'
+                    }
+                }
+                return response, result.status_code
+            else:
+                return result.json(), result.status_code
+
+        except Exception as exception:
+            response = {
+                'error': {
+                    'message': f'{exception}',
+                    'status': 'Fail'
+                }
+            }
+            app_logger.error(
+                f"An error occurred finding transaction: {service_provider_transaction_id}. Error: {exception}"
             )
             return response, 500
