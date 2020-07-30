@@ -11,7 +11,7 @@ from app.server.utils.enums.transaction_enums import MpesaTransactionStatus,\
     MpesaTransactionServiceProvider
 
 
-class MPesaTransaction(db.Model):
+class MpesaTransaction(db.Model):
     __tablename__ = 'mpesa_transactions'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=(uuid.uuid4))
@@ -22,6 +22,7 @@ class MPesaTransaction(db.Model):
 
     # transaction reference
     service_provider_transaction_id = db.Column(db.String, index=True, unique=True)
+    idempotency_key = db.Column(db.String)
 
     # transaction categorization
     status = db.Column(db.Enum(MpesaTransactionStatus))
@@ -32,3 +33,7 @@ class MPesaTransaction(db.Model):
     # date
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+    def __repr__(self):
+        return "Mpesa Transaction %r" % self.id
+
