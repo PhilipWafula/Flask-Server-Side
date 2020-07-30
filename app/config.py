@@ -115,6 +115,10 @@ AFRICASTALKING_MOBILE_B2C_URL = public_config_file_parser["AFRICASTALKING"].get(
 AFRICAS_TALKING_WALLET_BALANCE = public_config_file_parser["AFRICASTALKING"].get(
     "wallet_balance"
 )
+AFRICAS_TALKING_FIND_TRANSACTION = public_config_file_parser["AFRICASTALKING"].get(
+    "find_transaction"
+)
+
 
 # define mailer settings
 MAILER_SERVER = common_config_file_parser["MAILER"].get("server")
