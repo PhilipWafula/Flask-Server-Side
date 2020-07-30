@@ -5,7 +5,7 @@ from flask import current_app
 from app import config
 from app.server import create_app, db, app_logger
 from app.server.data.seed_system_data import system_seed
-from app.server.models.mpesa_transaction import MPesaTransaction
+from app.server.models.mpesa_transaction import MpesaTransaction
 from app.server.models.organization import Organization
 from app.server.models.user import User, SignupMethod
 from app.server.utils.enums.transaction_enums import MpesaTransactionServiceProvider,\
@@ -174,7 +174,7 @@ def create_blacklisted_token(activated_admin_user):
 
 @pytest.fixture(scope="module")
 def create_initiated_mpesa_transaction(test_client, initialize_database):
-    mpesa_transaction = MPesaTransaction(
+    mpesa_transaction = MpesaTransaction(
         destination_account='+254712345678',
         amount=375.00,
         product_name='flask-server-side',

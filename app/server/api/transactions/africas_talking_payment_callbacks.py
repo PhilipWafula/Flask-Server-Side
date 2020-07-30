@@ -6,7 +6,7 @@ from flask.views import MethodView
 
 # application imports
 from app.server import app_logger, db
-from app.server.models.mpesa_transaction import MPesaTransaction
+from app.server.models.mpesa_transaction import MpesaTransaction
 from app.server.utils.enums.transaction_enums import MpesaTransactionStatus
 
 africas_talking_payment_validation_blueprint = Blueprint('africas_talking_payment_validation', __name__)
@@ -26,7 +26,7 @@ class PaymentValidationAPI(MethodView):
 
         try:
             # get initiated transaction.
-            transaction = MPesaTransaction.query.filter_by(
+            transaction = MpesaTransaction.query.filter_by(
                 service_provider_transaction_id=service_provider_transaction_id).first()
 
             # validate transaction
@@ -61,7 +61,7 @@ class PaymentNotificationsAPI(MethodView):
 
         try:
             # find transaction and confirm its status
-            transaction = MPesaTransaction.query.filter_by(
+            transaction = MpesaTransaction.query.filter_by(
                 service_provider_transaction_id=service_provider_transaction_id
             ).first()
 

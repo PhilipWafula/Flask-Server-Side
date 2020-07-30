@@ -1,6 +1,7 @@
 # system imports
 import requests
 from typing import Optional, Dict
+from uuid import uuid4
 
 # third party imports
 from celery.utils.log import get_task_logger
@@ -8,7 +9,7 @@ from flask_mail import Message
 
 # application imports
 from app.server import config, db, mailer
-from app.server.models.mpesa_transaction import MPesaTransaction
+from app.server.models.mpesa_transaction import MpesaTransaction
 from app.server.utils.enums.transaction_enums import MpesaTransactionServiceProvider,\
     MpesaTransactionStatus,\
     MpesaTransactionType
@@ -57,12 +58,14 @@ def initiate_africas_talking_mobile_checkout_transaction(api_key: str,
     """
     # send payments
     try:
+        idempotency_key = str(uuid4())
         response = requests.post(
             url=config.AFRICASTALKING_MOBILE_CHECKOUT_URL,
             headers={
                 "Accept": "application/json",
                 "ApiKey": api_key,
                 "Content-Type": "application/json",
+                "Idempotency-Key": idempotency_key
             },
             timeout=5,
             json=mobile_checkout_transaction,
@@ -70,6 +73,10 @@ def initiate_africas_talking_mobile_checkout_transaction(api_key: str,
         # get status code and status
         status_code = response.status_code
         response_body = response.json()
+
+        task_logger.debug(
+            response_body
+        )
 
         # process response data
         if response_body.get('status') == 'PendingConfirmation':
@@ -81,16 +88,17 @@ def initiate_africas_talking_mobile_checkout_transaction(api_key: str,
         if status == 'Failed':
             status_description = response_body.get('errorMessage')
         else:
-            status_description = 'Mobile checkout queued successfully.'
+            status_description = response_body.get('description')
 
         # if transaction successfully initiated, create transaction on local table
-        if status_code == 201 and status == 'PendingConfirmation':
-            transaction = MPesaTransaction(
+        if status_code == 201 and response_body.get('status') == 'PendingConfirmation':
+            transaction = MpesaTransaction(
                 destination_account=mobile_checkout_transaction.get('phoneNumber'),
                 amount=mobile_checkout_transaction.get('amount'),
                 product_name=mobile_checkout_transaction.get('productName'),
                 provider='MPESA',
                 service_provider_transaction_id=response.json().get('transactionId'),
+                idempotency_key=idempotency_key,
                 status=status,
                 status_description=status_description,
                 type=MpesaTransactionType.MOBILE_CHECKOUT,
@@ -116,12 +124,14 @@ def initiate_africas_talking_business_to_business_transaction(api_key: str,
     """
 
     try:
+        idempotency_key = str(uuid4())
         response = requests.post(
             url=config.AFRICASTALKING_MOBILE_B2B_URL,
             headers={
                 "Accept": "application/json",
                 "ApiKey": api_key,
                 "Content-Type": "application/json",
+                "Idempotency-Key": idempotency_key,
             },
             timeout=5,
             json=business_to_business_transaction,
@@ -145,12 +155,13 @@ def initiate_africas_talking_business_to_business_transaction(api_key: str,
 
         # if transaction successfully initiated, create transaction on local table
         if status_code == 201 and response_body.get('status') == 'Queued':
-            transaction = MPesaTransaction(
+            transaction = MpesaTransaction(
                 destination_account=business_to_business_transaction.get('destinationChannel'),
                 amount=business_to_business_transaction.get('amount'),
                 product_name=business_to_business_transaction.get('productName'),
                 provider='MPESA',
                 service_provider_transaction_id=response.json().get('transactionId'),
+                idempotency_key=idempotency_key,
                 status=status,
                 status_description=status_description,
                 type=MpesaTransactionType.MOBILE_BUSINESS_TO_BUSINESS,
@@ -176,13 +187,14 @@ def initiate_africas_talking_business_to_consumer_transaction(api_key: str,
     """
 
     try:
-        # send payments
+        idempotency_key = str(uuid4())
         response = requests.post(
             url=config.AFRICASTALKING_MOBILE_B2C_URL,
             headers={
                 "Accept": "application/json",
                 "ApiKey": api_key,
                 "Content-Type": "application/json",
+                "Idempotency-Key": idempotency_key
             },
             timeout=5,
             json=business_to_consumer_transaction,
@@ -209,12 +221,13 @@ def initiate_africas_talking_business_to_consumer_transaction(api_key: str,
                 else:
                     status_description = 'Mobile Business to consumer transaction queued successfully.'
 
-                transaction = MPesaTransaction(
+                transaction = MpesaTransaction(
                     destination_account=entry.get('phoneNumber'),
                     amount=amount,
                     product_name=business_to_consumer_transaction.get('productName'),
                     provider='MPESA',
                     service_provider_transaction_id=entry.get('transactionId'),
+                    idempotency_key=idempotency_key,
                     status=status,
                     status_description=status_description,
                     type=MpesaTransactionType.MOBILE_BUSINESS_TO_CONSUMER,

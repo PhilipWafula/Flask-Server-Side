@@ -1,5 +1,5 @@
 # application imports
-from app.server.models.mpesa_transaction import MPesaTransaction
+from app.server.models.mpesa_transaction import MpesaTransaction
 from app.server.utils.enums.transaction_enums import MpesaTransactionStatus
 
 
@@ -33,7 +33,7 @@ def test_payment_notifications_api(test_client,
     mpesa_transaction_id = create_successful_africas_talking_mobile_checkout_confirmation_callback.get(
         'transactionId'
     )
-    mpesa_transaction = MPesaTransaction.query.filter_by(service_provider_transaction_id=mpesa_transaction_id).first()
+    mpesa_transaction = MpesaTransaction.query.filter_by(service_provider_transaction_id=mpesa_transaction_id).first()
 
     # check that statuses match yet to be validated transactions
     assert mpesa_transaction.status == MpesaTransactionStatus.INITIATED
