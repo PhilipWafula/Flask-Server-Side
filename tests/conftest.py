@@ -5,8 +5,12 @@ from flask import current_app
 from app import config
 from app.server import create_app, db, app_logger
 from app.server.data.seed_system_data import system_seed
+from app.server.models.mpesa_transaction import MPesaTransaction
 from app.server.models.organization import Organization
 from app.server.models.user import User, SignupMethod
+from app.server.utils.enums.transaction_enums import MpesaTransactionServiceProvider,\
+    MpesaTransactionStatus,\
+    MpesaTransactionType
 
 
 @pytest.fixture(autouse=True)
@@ -166,6 +170,70 @@ def create_blacklisted_token(activated_admin_user):
     db.session.add(blacklisted_token)
     db.session.commit()
     return blacklisted_token
+
+
+@pytest.fixture(scope="module")
+def create_initiated_mpesa_transaction(test_client, initialize_database):
+    mpesa_transaction = MPesaTransaction(
+        destination_account='+254712345678',
+        amount=375.00,
+        product_name='flask-server-side',
+        provider='MPESA',
+        service_provider_transaction_id='ATPid_SampleTxnId123',
+        status=MpesaTransactionStatus.INITIATED,
+        status_description='Mobile checkout queued successfully.',
+        type=MpesaTransactionType.MOBILE_CHECKOUT,
+        service_provider=MpesaTransactionServiceProvider.AFRICAS_TALKING
+    )
+    db.session.add(mpesa_transaction)
+    db.session.commit()
+
+
+@pytest.fixture(scope="module")
+def create_successful_africas_talking_mobile_checkout_validation_callback():
+    return {
+        "amount": 375,
+        "category": "MobileB2C",
+        "currencyCode": "KES",
+        "metadata": {
+            "mapping_id": "Some ID",
+            "recipient": "Some description"
+        },
+        "phoneNumber": "+254712345678",
+        "sourceIpAddress": "154.78.47.41",
+        "transactionId": "ATPid_SampleTxnId123"
+    }
+
+
+@pytest.fixture(scope="module")
+def create_successful_africas_talking_mobile_checkout_confirmation_callback():
+    return {
+        "requestMetadata": {
+            "item": "Vanilla Latte"
+        },
+        "sourceType": "PhoneNumber",
+        "source": "+254712345678",
+        "provider": "Athena",
+        "destinationType": "Wallet",
+        "description": "Received Mobile Checkout funds from +254712345678",
+        "providerChannel": "ATHENA",
+        "direction": "Inbound",
+        "transactionFee": "KES 1.0000",
+        "providerRefId": "dc9f551c-197b-404e-ba28-09a7b023c6dc",
+        "providerMetadata": {
+            "KYCInfo1": "Sample KYCInfo1",
+            "KYCInfo2": "Sample KYCInfo2"
+        },
+        "providerFee": "KES 25.0000",
+        "origin": "ApiRequest",
+        "status": "Success",
+        "productName": "flask-server-side",
+        "category": "MobileCheckout",
+        "transactionDate": "2020-07-29 08:22:54",
+        "destination": "PaymentWallet",
+        "value": "KES 375.0000",
+        "transactionId": "ATPid_SampleTxnId123"
+    }
 
 
 @pytest.fixture(autouse=True)
