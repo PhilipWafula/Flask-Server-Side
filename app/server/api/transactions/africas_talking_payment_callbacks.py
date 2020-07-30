@@ -61,7 +61,9 @@ class PaymentNotificationsAPI(MethodView):
 
         try:
             # find transaction and confirm its status
-            transaction = MPesaTransaction.query.get(service_provider_transaction_id=service_provider_transaction_id)
+            transaction = MPesaTransaction.query.filter_by(
+                service_provider_transaction_id=service_provider_transaction_id
+            ).first()
 
             if transaction and transaction.amount == amount:
                 # update transaction status
@@ -75,6 +77,12 @@ class PaymentNotificationsAPI(MethodView):
 
             db.session.add(transaction)
             db.session.commit()
+
+            response = {
+                'status': 'Received'
+            }
+
+            return make_response(jsonify(response))
         except Exception as exception:
             app_logger.error(
                 f'There was an error confirming transaction: {service_provider_transaction_id}. Error:{exception}')
