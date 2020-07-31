@@ -48,6 +48,7 @@ def register_blueprints(application):
     from app.server.api.payments.africas_talking_payment_callbacks import \
         africas_talking_payment_validation_blueprint
     from app.server.api.payments.payment import payments_blueprint
+    from app.server.api.transactions.mpesa_transaction import mpesa_transactions_blueprint
     from app.server.api.user import user_blueprint
 
     application.register_blueprint(auth_blueprint, url_prefix=url_version)
@@ -55,6 +56,7 @@ def register_blueprints(application):
     application.register_blueprint(user_blueprint, url_prefix=url_version)
     application.register_blueprint(africas_talking_payment_validation_blueprint, url_prefix=url_version)
     application.register_blueprint(payments_blueprint, url_prefix=url_version)
+    application.register_blueprint(mpesa_transactions_blueprint, url_prefix=url_version)
 
 
 def register_extensions(app):
