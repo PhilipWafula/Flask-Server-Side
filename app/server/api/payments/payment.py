@@ -171,7 +171,7 @@ class RetryPaymentAPI(MethodView):
         self.africas_talking_payments_client = AfricasTalking(
             config.AFRICASTALKING_API_KEY, config.AFRICASTALKING_USERNAME)
 
-    # @requires_auth(authenticated_roles=['ADMIN'])
+    @requires_auth(authenticated_roles=['ADMIN'])
     def post(self):
 
         payment_retrial_data = request.get_json()

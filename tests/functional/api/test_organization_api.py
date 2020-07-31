@@ -28,7 +28,10 @@ def test_create_standard_organization(
         assert response.json["data"]["organization"]["name"] == name
 
 
-def test_get_all_organizations(test_client, activated_admin_user):
+def test_get_all_organizations(test_client,
+                               activated_admin_user,
+                               create_master_organization,
+                               create_standard_organization):
     """
     GIVEN a flask application
     WHEN a GET request is sent to '/api/v1/organization/' by an activated admin user
