@@ -1,7 +1,6 @@
 # third party imports
 import toastedmarshmallow
-from marshmallow import fields
-from marshmallow import Schema
+from marshmallow import fields,  Schema
 
 
 class MpesaTransactionSchema(Schema):
