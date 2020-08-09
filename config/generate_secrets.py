@@ -21,11 +21,13 @@ def add_value(config_parser, section, key, value):
     config_parser[section][key] = str(value)
 
 
-template_dir = './templates'
-specific_secrets_read_path = os.path.join(template_dir, 'specific_secrets_template.ini')
-common_secrets_read_path = os.path.join(template_dir, 'common_secrets_template.ini')
-if not os.path.isdir(template_dir):
-    os.mkdir(template_dir)
+template_path = './templates'
+specific_secrets_read_path = os.path.join(template_path, 'specific_secrets_template.ini')
+common_secrets_read_path = os.path.join(template_path, 'common_secrets_template.ini')
+
+secret_dir = './secret'
+if not os.path.isdir(secret_dir):
+    os.mkdir(secret_dir)
 
 
 def generate_specific_secrets(write_path):
@@ -64,28 +66,23 @@ def generate_common_secrets(write_path):
 
     MAILER = 'MAILER'
     add_common_secret(MAILER, 'server', '')
-    add_common_secret(MAILER, 'port', '')
-    add_common_secret(MAILER, 'username', '')
-    add_common_secret(MAILER, 'password', '')
-    add_common_secret(MAILER, 'default_sender', '')
-    add_common_secret(MAILER, 'max_emails', '')
-    add_common_secret(MAILER, 'use_ssl', '')
-    add_common_secret(MAILER, 'use_tsl', '')
+    add_common_secret(MAILER, 'server', '')
+    add_common_secret(MAILER, 'server', '')
 
     with open(write_path, 'w') as f:
         common_secrets_parser.write(f)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Generate template secrets.')
+    parser = argparse.ArgumentParser(description='Generate Test Secrets.')
 
     parser.add_argument('-n', '--name', default='development',
                         help='The deployment name. Will produce file like "foo_secrets.ini"')
 
     args = parser.parse_args()
 
-    specific_secrets_write_path = os.path.join(template_dir, f'{args.name}_secrets_template.ini')
-    common_secrets_write_path = os.path.join(template_dir, 'common_secrets_template.ini')
+    specific_secrets_write_path = os.path.join(secret_dir, f'{args.name}_secrets.ini')
+    common_secrets_write_path = os.path.join(secret_dir, 'common_secrets.ini')
 
     print(f'Generating deployment specific ({args.name}) secrets')
     generate_specific_secrets(specific_secrets_write_path)
